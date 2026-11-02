@@ -1,0 +1,110 @@
+name: Pull Request Check
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths-ignore:
+      - '**.md'
+      - '**.txt'
+      - '.gitignore'
+      - '.github/**'
+      - '.idea/**'
+      - '!.github/workflows/**'
+
+jobs:
+  build:
+    name: Build awalocation
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Cache Gradle Dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            !~/.gradle/caches/build-cache-*
+          key: gradle-deps-core-${{ hashFiles('**/build.gradle.kts') }}
+          restore-keys: gradle-deps
+
+      - name: Cache Gradle Build
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches/build-cache-*
+            ~/.gradle/buildOutputCleanup/cache.properties
+          key: gradle-builds-core-${{ github.sha }}
+          restore-keys: gradle-builds
+
+      - name: Build with Gradle
+        run: |
+          if [ -n "${{ secrets.SIGN_KEYSTORE_BASE64 }}" ]; then
+            printf '%s' "${{ secrets.SIGN_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+            export KEYSTORE_PATH="../keystore.jks"
+            export KEYSTORE_TYPE="pkcs12"
+            export KEYSTORE_PASSWORD="${{ secrets.SIGN_KEYSTORE_PASSWORD }}"
+            export KEY_ALIAS="${{ secrets.SIGN_ALIAS }}"
+            export KEY_PASSWORD="${{ secrets.SIGN_KEY_PASSWORD }}"
+          else
+            keytool -genkeypair -v -keystore keystore.jks -alias awalocation -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=awalocation, OU=nanci, O=nanci, L=SZ, ST=GD, C=CN"
+            export KEYSTORE_PATH="../keystore.jks"
+            export KEYSTORE_TYPE="jks"
+            export KEYSTORE_PASSWORD="123456"
+            export KEY_ALIAS="awalocation"
+            export KEY_PASSWORD="123456"
+          fi
+          chmod +x ./gradlew
+          ./gradlew :app:assembleRelease --build-cache --parallel --warning-mode all --stacktrace
+          echo "APK_FILE_ALL=$(find app/build/outputs/apk/app/release -name '*.apk')" >> $GITHUB_ENV
+          echo "APK_FILE_ARM64=$(find app/build/outputs/apk/arm64/release -name '*.apk')" >> $GITHUB_ENV
+          echo "APK_FILE_X86_64=$(find app/build/outputs/apk/x64/release -name '*.apk')" >> $GITHUB_ENV
+
+      - name: Set awalocation Version
+        run: |
+          version_name_all=$(basename -s .apk "${{ env.APK_FILE_ALL }}")
+          version_name_arm64=$(basename -s .apk "${{ env.APK_FILE_ARM64 }}")
+          version_name_x86_64=$(basename -s .apk "${{ env.APK_FILE_X86_64 }}")
+          echo "AWALOCATION_VERSION_ALL=$version_name_all" >> $GITHUB_ENV
+          echo "AWALOCATION_VERSION_ARM64=$version_name_arm64" >> $GITHUB_ENV
+          echo "AWALOCATION_VERSION_x86_64=$version_name_x86_64" >> $GITHUB_ENV
+
+      - name: Show Artifacts SHA256
+        run: |
+          echo "### Build Success :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "|ABI|SHA256|" >> $GITHUB_STEP_SUMMARY
+          echo "|:--------:|:----------|" >> $GITHUB_STEP_SUMMARY
+          all=($(sha256sum "${{ env.APK_FILE_ALL }}"))
+          echo "|all|$all" >> $GITHUB_STEP_SUMMARY
+          arm64=($(sha256sum "${{ env.APK_FILE_ARM64 }}"))
+          echo "|arm64|$arm64" >> $GITHUB_STEP_SUMMARY
+          x86_64=($(sha256sum "${{ env.APK_FILE_X86_64 }}"))
+          echo "|x86_64|$x86_64" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload ALL APK RELEASE
+        uses: actions/upload-artifact@v7
+        with:
+          name: "${{ env.AWALOCATION_VERSION_ALL }}"
+          path: "${{ env.APK_FILE_ALL }}"
+
+      - name: Upload ARM64 APK RELEASE
+        uses: actions/upload-artifact@v7
+        with:
+          name: "${{ env.AWALOCATION_VERSION_ARM64 }}"
+          path: "${{ env.APK_FILE_ARM64 }}"
+
+      - name: Upload X86_64 APK RELEASE
+        uses: actions/upload-artifact@v7
+        with:
+          name: "${{ env.AWALOCATION_VERSION_x86_64 }}"
+          path: "${{ env.APK_FILE_X86_64 }}"

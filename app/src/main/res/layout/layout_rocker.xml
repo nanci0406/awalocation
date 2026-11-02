@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="6dp">
+
+    <!-- 摇杆圆盘 -->
+    <com.nanci.awalocation.android.widget.RockerView
+        android:id="@+id/rocker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        app:areaBackground="#66171B24"
+        app:rockerBackground="#F5FFFFFF" />
+
+    <!-- 胶囊控制面板 -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/rocker_card"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="@color/portal_surface"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="6dp"
+        app:cardMaxElevation="8dp"
+        app:cardPreventCornerOverlap="false"
+        app:cardUseCompatPadding="false"
+        app:contentPadding="3dp"
+        app:strokeColor="@color/portal_outline_variant"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+            android:id="@+id/rocker_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <!-- 主控制行：展开时显示 [移动/收起] [自动] [设置]；收起时只保留 [展开/移动] -->
+            <LinearLayout
+                android:id="@+id/rocker_row_main"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/move"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="移动或收起摇杆"
+                    android:padding="8dp"
+                    android:src="@drawable/baseline_adjust_24"
+                    app:tint="@color/portal_on_surface_variant" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/auto"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="自动移动选项"
+                    android:padding="8dp"
+                    android:src="@drawable/baseline_robot_24"
+                    app:tint="@color/portal_primary" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/expand_menu"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="摇杆设置"
+                    android:padding="8dp"
+                    android:src="@drawable/baseline_control_camera_24"
+                    app:tint="@color/portal_on_surface_variant" />
+            </LinearLayout>
+
+            <!-- 自动控制子行：展开时受 auto 按钮控制，收起时并入单行横向胶囊 -->
+            <LinearLayout
+                android:id="@+id/auto_card"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/auto_play"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="播放或暂停路线"
+                    android:padding="8dp"
+                    android:src="@drawable/baseline_play_24"
+                    app:tint="@color/portal_primary" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/auto_status"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="自动移动状态"
+                    android:padding="8dp"
+                    android:src="@drawable/baseline_settings_24"
+                    app:tint="@color/portal_on_surface_variant" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/auto_lock"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="锁定自动移动"
+                    android:padding="8dp"
+                    android:src="@drawable/baseline_manual_24"
+                    app:tint="@color/portal_on_surface_variant" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+</LinearLayout>

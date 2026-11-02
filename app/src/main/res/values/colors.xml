@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 浅色调核心 Material 3 调色盘：温润、雅致、清晰 -->
+    <color name="portal_primary">#2858E8</color>
+    <color name="portal_on_primary">#FFFFFF</color>
+    <color name="portal_primary_container">#EAF0FF</color>
+    <color name="portal_on_primary_container">#12328A</color>
+    <color name="portal_secondary">#4D596B</color>
+    <color name="portal_on_secondary">#FFFFFF</color>
+    <color name="portal_secondary_container">#E2E7EE</color>
+    <color name="portal_on_secondary_container">#182330</color>
+
+    <color name="portal_background">#F8F9FC</color>
+    <color name="portal_surface">#FFFFFF</color>
+    <color name="portal_on_surface">#191C24</color>
+    <color name="portal_surface_variant">#EEF2F7</color>
+    <color name="portal_on_surface_variant">#545E71</color>
+    <color name="portal_outline">#CFD7E4</color>
+    <color name="portal_outline_variant">#E8ECF2</color>
+    <color name="portal_success">#14804A</color>
+
+    <!-- 兼容旧资源名 -->
+    <color name="glass_fill">#FFFFFF</color>
+    <color name="glass_fill_strong">#FFFFFF</color>
+    <color name="glass_stroke">#E8ECF2</color>
+    <color name="glass_scrim">#4D000000</color>
+
+    <color name="colorAccent">#2858E8</color>
+    <color name="primary">#FFFFFFFF</color>
+    <color name="primary_dark">#FFFFFFFF</color>
+    <color name="accent">#4D596B</color>
+    <color name="accentFallback">#647184</color>
+    <color name="icon_grey">#647184</color>
+    <color name="red500">#D92D20</color>
+    <color name="green500">#14804A</color>
+    <color name="grey500">#98A2B3</color>
+    <color name="blue500">#2858E8</color>
+    <color name="yellow500">#DC9A06</color>
+    <color name="dark_secondary_text">#D0D5DD</color>
+    <color name="flashing_background_color">@android:color/black</color>
+    <color name="ic_launcher_background">#2858E8</color>
+
+    <color name="theme_appbar_color">#FFFFFF</color>
+    <color name="theme_side_nav_text_color">#191C24</color>
+    <color name="theme_side_nav_start_color">#2858E8</color>
+    <color name="theme_side_nav_center_color">#4C76F0</color>
+    <color name="theme_side_nav_end_color">#1D44C4</color>
+    <color name="theme_appbar_text_color">#191C24</color>
+    <color name="theme_appbar_icon_color">#3C4354</color>
+    <color name="theme_nav_icon_color">#647184</color>
+    <color name="theme_active">#142858E8</color>
+    <color name="theme_focused_touch">#142858E8</color>
+
+    <color name="portal_appbar_color">#FFFFFF</color>
+    <color name="portal_appbar_color_center">#545E71</color>
+    <color name="portal_appbar_color_dark">#2858E8</color>
+    <color name="portal_mini_title_color">#545E71</color>
+    <color name="portal_hint_color">#8A94A6</color>
+    <color name="portal_text_color">#191C24</color>
+    <color name="portal_nav_icon">#647184</color>
+    <color name="portal_mock_off">#647184</color>
+    <color name="portal_mock_on">#2858E8</color>
+    <color name="portal_location_detail_background">#191C24</color>
+    <color name="portal_location_detail_block">#FFFFFF</color>
+    <color name="selected_color">#142858E8</color>
+
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="colorPrimary">#2858E8</color>
+    <color name="colorPrimaryDark">#1D44C4</color>
+</resources>

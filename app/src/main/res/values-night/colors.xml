@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="portal_primary">#B9C6FF</color>
+    <color name="portal_on_primary">#142B73</color>
+    <color name="portal_primary_container">#2C439F</color>
+    <color name="portal_on_primary_container">#E1E7FF</color>
+    <color name="portal_secondary">#B9C7D0</color>
+    <color name="portal_on_secondary">#25343D</color>
+    <color name="portal_secondary_container">#3A4952</color>
+    <color name="portal_on_secondary_container">#D8E4EA</color>
+
+    <color name="portal_background">#0E1118</color>
+    <color name="portal_surface">#171B24</color>
+    <color name="portal_on_surface">#E4E7EF</color>
+    <color name="portal_surface_variant">#222733</color>
+    <color name="portal_on_surface_variant">#B8C0D0</color>
+    <color name="portal_outline">#4B5568</color>
+    <color name="portal_outline_variant">#303746</color>
+    <color name="portal_success">#7DD8AE</color>
+
+    <color name="glass_fill">#171B24</color>
+    <color name="glass_fill_strong">#171B24</color>
+    <color name="glass_stroke">#303746</color>
+    <color name="glass_scrim">#8C000000</color>
+    <color name="accent">#B9C7D0</color>
+    <color name="red500">#FDA29B</color>
+    <color name="green500">#7DD8AE</color>
+    <color name="blue500">#B9C6FF</color>
+
+    <color name="theme_appbar_color">#171B24</color>
+    <color name="theme_side_nav_text_color">#E4E7EF</color>
+    <color name="theme_side_nav_start_color">#2C439F</color>
+    <color name="theme_side_nav_center_color">#3658B4</color>
+    <color name="theme_side_nav_end_color">#21377F</color>
+    <color name="theme_appbar_text_color">#E4E7EF</color>
+    <color name="theme_appbar_icon_color">#D7DCE7</color>
+    <color name="theme_nav_icon_color">#B8C0D0</color>
+    <color name="theme_active">#33B9C6FF</color>
+    <color name="theme_focused_touch">#24B9C6FF</color>
+
+    <color name="portal_appbar_color">#171B24</color>
+    <color name="portal_appbar_color_center">#B8C0D0</color>
+    <color name="portal_appbar_color_dark">#B9C6FF</color>
+    <color name="portal_mini_title_color">#B8C0D0</color>
+    <color name="portal_hint_color">#7F899B</color>
+    <color name="portal_text_color">#E4E7EF</color>
+    <color name="portal_nav_icon">#B8C0D0</color>
+    <color name="portal_mock_off">#8A94A7</color>
+    <color name="portal_mock_on">#B9C6FF</color>
+    <color name="portal_location_detail_background">#171B24</color>
+    <color name="portal_location_detail_block">#171B24</color>
+    <color name="selected_color">#33B9C6FF</color>
+</resources>

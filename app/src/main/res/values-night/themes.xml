@@ -1,0 +1,11 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- 深色模式下 AppTheme 由 DayNight 自动切换；夜间配色见 values-night/colors.xml -->
+    <style name="Theme.Portal" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/portal_primary</item>
+        <item name="colorOnPrimary">@color/portal_on_primary</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+</resources>

@@ -68,26 +68,26 @@
 ```mermaid
 flowchart TD
     subgraph UI ["awalocation Control App (com.nanci.awalocation)"]
-        A[MainActivity / UI 控制台] --> B[MockServiceHelper]
-        B -->|Extra Command / Binder IPC| C[Android LocationManager API]
+        A["MainActivity / UI 控制台"] --> B["MockServiceHelper"]
+        B -->|"Extra Command / Binder IPC"| C["Android LocationManager API"]
     end
 
     subgraph SYSTEM_SERVER ["system_server (Android Framework)"]
-        C --> D[LocationServiceHook (Xposed)]
-        D --> E[RemoteCommandHandler]
-        E -->|按需加载 SO 库| F[libportal.so / Dobby Engine]
+        C --> D["LocationServiceHook (Xposed)"]
+        D --> E["RemoteCommandHandler"]
+        E -->|"按需加载 SO 库"| F["libportal.so / Dobby Engine"]
         
         subgraph SENSOR_HOOK ["Native Sensor Hooking"]
-            F -->|Inline Hook| G["BitTube::sendObjects (libsensor.so)"]
-            F -->|Inline Hook| H["convertToSensorEvent (libsensorservice.so)"]
-            I[SensorSimulator 数学步态模型] --> G
+            F -->|"Inline Hook"| G["BitTube::sendObjects (libsensor.so)"]
+            F -->|"Inline Hook"| H["convertToSensorEvent (libsensorservice.so)"]
+            I["SensorSimulator 数学步态模型"] --> G
             I --> H
         end
     end
 
     subgraph APPS ["目标应用 (Keep / 微信 / 地图 / 测试工具)"]
-        G -->|合成传感器事件| J[App SensorEventListener]
-        D -->|拦截注入坐标| K[App LocationListener]
+        G -->|"合成传感器事件"| J["App SensorEventListener"]
+        D -->|"拦截注入坐标"| K["App LocationListener"]
     end
 ```
 

@@ -8,7 +8,7 @@ pluginManagement {
             }
         }
         mavenCentral()
-        gradlePluginAwalocation()
+        gradlePluginPortal()
     }
 }
 

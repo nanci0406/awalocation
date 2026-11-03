@@ -28,6 +28,7 @@ import com.nanci.awalocation.R
 import com.nanci.awalocation.android.widget.RockerView
 import com.nanci.awalocation.android.window.OverlayUtils
 import com.nanci.awalocation.databinding.FragmentRouteMockBinding
+import com.nanci.awalocation.ext.accuracy
 import com.nanci.awalocation.ext.altitude
 import com.nanci.awalocation.ext.drawOverOtherAppsEnabled
 import com.nanci.awalocation.ext.getHistoricalRoutesList
@@ -139,6 +140,7 @@ class RouteMockFragment : Fragment() {
         requireContext().selectRoute?.let {
             binding.mockRouteName.text = it.name
             mockServiceViewModel.selectedRoute = it
+            mockServiceViewModel.routeStage = 0
         }
 
 
@@ -295,10 +297,11 @@ class RouteMockFragment : Fragment() {
             val context = requireContext()
             val speed = context.speed
             val altitude = context.altitude
-            val accuracy = FakeLoc.accuracy
+            val accuracy = context.accuracy
 
             button.isClickable = false
             try {
+                mockServiceViewModel.routeStage = 0
                 withContext(Dispatchers.IO) {
                     if (MockServiceHelper.tryOpenMock(
                             mockServiceViewModel.locationManager!!,
@@ -397,6 +400,12 @@ class RouteMockFragment : Fragment() {
         reloadRoutes()
     }
 
+    override fun onDestroyView() {
+        runCatching { mockServiceViewModel.rocker.setRockerAutoListener(null) }
+        super.onDestroyView()
+        _binding = null
+    }
+
     private fun reloadRoutes() {
         if (_binding == null || context == null) return
         val routes = requireContext().getHistoricalRoutesList()
@@ -407,6 +416,7 @@ class RouteMockFragment : Fragment() {
             } else {
                 binding.mockRouteName.text = route.name
                 mockServiceViewModel.selectedRoute = route
+                mockServiceViewModel.routeStage = 0
                 requireContext().selectRoute = route
 
                 val lm = mockServiceViewModel.locationManager

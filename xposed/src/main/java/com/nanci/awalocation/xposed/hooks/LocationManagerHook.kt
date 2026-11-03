@@ -64,7 +64,7 @@ object LocationManagerHook: BaseLocationHook() {
             }.map {
                 XposedBridge.hookMethod(it, object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam?) {
-                        if (param == null || param.args.size > 1 || param.args[1] == null) return
+                        if (param == null || param.args.size < 2 || param.args[1] == null) return
 
                         val listener = param.args[1]
                         listener.javaClass.onceHookAllMethod("onLocationChanged", hookOnLocation)

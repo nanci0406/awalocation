@@ -29,6 +29,12 @@ android {
 //        }
 
         manifestPlaceholders["BUGLY_APPID"] = "222f9ef298"
+        manifestPlaceholders["AMAP_API_KEY"] = providers.gradleProperty("AMAP_API_KEY")
+            .orElse(providers.environmentVariable("AMAP_API_KEY"))
+            .orElse("YOUR_AMAP_KEY")
+            .get()
+            .trim()
+            .ifBlank { "YOUR_AMAP_KEY" }
 
         val deviceName = providers.environmentVariable("HOSTNAME")
             .orElse(providers.environmentVariable("COMPUTERNAME"))
@@ -62,9 +68,8 @@ android {
         create("app") {
             dimension = "mode"
             ndk {
-                println("Full architecture and full compilation.")
+                println("Default arm64 build.")
                 abiFilters.add("arm64-v8a")
-                abiFilters.add("x86_64")
             }
         }
         create("arm64") {
@@ -72,13 +77,6 @@ android {
             ndk {
                 println("Full compilation of arm64 architecture")
                 abiFilters.add("arm64-v8a")
-            }
-        }
-        create("x64") {
-            dimension = "mode"
-            ndk {
-                println("Full compilation of x64 architecture")
-                abiFilters.add("x86_64")
             }
         }
     }
@@ -94,11 +92,9 @@ android {
         jniLibs {
             useLegacyPackaging = true
             excludes += "lib/armeabi/**"
+            excludes += "lib/armeabi-v7a/**"
             excludes += "lib/x86/**"
-            excludes += "lib/x86_64/libBaiduMapSDK**"
-            excludes += "lib/x86_64/libc++_shared.so"
-            excludes += "lib/x86_64/liblocSDK8b.so"
-            excludes += "lib/x86_64/libtiny_magic.so"
+            excludes += "lib/x86_64/**"
         }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -119,23 +115,20 @@ android {
             excludes += "/META-INF/*.kotlin_module"
             excludes += "/META-INF/services/reactor.blockhound.integration.BlockHoundIntegration"
             excludes += "lib/armeabi/**"
+            excludes += "lib/armeabi-v7a/**"
             excludes += "lib/x86/**"
+            excludes += "lib/x86_64/**"
         }
     }
-    sourceSets {
-        getByName("main").jniLibs.directories += "libs"
-    }
-
     configureAppSigningConfigsForRelease(project)
 }
 
 // AGP 9 已移除 android.applicationVariants，改用 androidComponents 自定义 APK 文件名。
-// flavor: app -> all, arm64 -> arm64, x64 -> x86_64，输出形如 Awalocation-v<versionName>-<abi>.apk
+// flavor: app -> all, arm64 -> arm64，输出形如 awalocation-v<versionName>-<abi>.apk
 androidComponents {
     onVariants { variant ->
         val abiName = when (val flavor = variant.flavorName.orEmpty()) {
             "app" -> "all"
-            "x64" -> "x86_64"
             else -> flavor
         }
         val defaultVer = android.defaultConfig.versionName.orEmpty()
@@ -197,14 +190,10 @@ dependencies {
 
     implementation(libs.bugly)
 
-    // 高德地图 SDK（3D地图 + 定位 + 检索）
-    implementation("com.amap.api:3dmap-location-search:latest.integration")
+    // 高德地图 SDK（3D地图 + 定位 + 检索合包）
+    implementation(libs.amap.sdk)
 
     implementation(libs.geotools)
-    implementation(fileTree("libs") {
-        include("*.jar")
-    })
-
 }
 
 fun getGitCommitCount(): Int {

@@ -117,6 +117,9 @@ object StepSensorHook : BaseDivineService() {
         val key = StepListenerKey(listener, sensor.type)
         stepListeners[key] = StepListenerEntry(listener, sensor, handler)
         Logger.info("Step listener registered: type=${sensor.type}, listener=${listener.javaClass.name}")
+        // Install the real-event interception callback. Without this the feeder cannot
+        // learn the device's real step-counter baseline and real events stay visible.
+        hookListenerCallback(listener)
         wakeFeeder()
     }
 
@@ -140,7 +143,6 @@ object StepSensorHook : BaseDivineService() {
     fun interceptStepEvent(param: XC_MethodHook.MethodHookParam): Boolean {
         // 合成事件放行，不进行拦截与结果覆盖
         if (isDeliveringSyntheticEvent.get() == true) return false
-        if (!active()) return false
         val event = param.args.getOrNull(0) as? SensorEvent ?: return false
         when (event.sensor?.type) {
             Sensor.TYPE_STEP_COUNTER -> {
@@ -152,6 +154,10 @@ object StepSensorHook : BaseDivineService() {
             Sensor.TYPE_STEP_DETECTOR -> {}
             else -> return false
         }
+
+        // 即使当前未开启步频模拟，也要记录真实计步基线；只有开启时才吞掉真实事件。
+        if (!active()) return false
+
         param.result = null
         return true
     }

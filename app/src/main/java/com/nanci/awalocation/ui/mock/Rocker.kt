@@ -45,11 +45,14 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
     var isStart = false
     var isHide = false
     private var autoCardVisible = false
-    var autoStatus = false
+    @Volatile var autoStatus = false
         get() = field
         set(value) {
+            if (field == value) return
             field = value
-            playAuto(root.findViewById(R.id.rocker))
+            activity.runOnUiThread {
+                playAuto(root.findViewById(R.id.rocker))
+            }
         }
     var autoLockStatus = false
     var autoListener: OnAutoListener? = null
@@ -98,7 +101,6 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
 
         autoPlayView.setOnClickListener {
             autoStatus = !autoStatus
-            playAuto(rockerView)
         }
 
         root.findViewById<View>(R.id.auto_status).setOnClickListener {
@@ -227,7 +229,7 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
         rockerView.listener = listener
     }
 
-    fun setRockerAutoListener(listener: OnAutoListener) {
+    fun setRockerAutoListener(listener: OnAutoListener?) {
         autoListener = listener
     }
 

@@ -3,7 +3,7 @@ package com.nanci.awalocation.ext
 import android.content.Context
 import androidx.core.content.edit
 import com.alibaba.fastjson2.JSON
-import com.baidu.mapapi.map.BaiduMap
+import com.amap.api.maps.AMap
 import com.nanci.awalocation.service.MockServiceHelper
 import com.nanci.awalocation.ui.mock.HistoricalLocation
 import com.nanci.awalocation.ui.mock.HistoricalRoute
@@ -117,9 +117,9 @@ fun Context.saveHistoricalRoutesList(routes: List<HistoricalRoute>) {
 }
 
 var Context.reportDuration: Int
-    get() = sharedPrefs.getInt("reportDuration", 100)
+    get() = sharedPrefs.getInt("reportDuration", 100).coerceAtLeast(20)
     set(value) = sharedPrefs.edit {
-        putInt("reportDuration", value)
+        putInt("reportDuration", value.coerceAtLeast(20))
     }
 
 var Context.minSatelliteCount: Int
@@ -129,7 +129,7 @@ var Context.minSatelliteCount: Int
     }
 
 var Context.mapType: Int
-    get() = sharedPrefs.getInt("mapType", BaiduMap.MAP_TYPE_NORMAL)
+    get() = sharedPrefs.getInt("mapType", AMap.MAP_TYPE_NORMAL)
     set(value) = sharedPrefs.edit {
         putInt("mapType", value)
     }
@@ -173,12 +173,6 @@ var Context.needDowngradeToCdma: Boolean
     get() = sharedPrefs.getBoolean("needDowngradeToCdma", FakeLoc.needDowngradeToCdma)
     set(value) = sharedPrefs.edit {
         putBoolean("needDowngradeToCdma", value)
-    }
-
-var Context.hookSensor: Boolean
-    get() = sharedPrefs.getBoolean("hookSensor", false)
-    set(value) = sharedPrefs.edit {
-        putBoolean("hookSensor", value)
     }
 
 /**
@@ -282,7 +276,7 @@ var Context.enableNMEA: Boolean
     }
 
 var Context.disableWifiScan: Boolean
-    get() = sharedPrefs.getBoolean("disableWifiScan", FakeLoc.enableNMEA)
+    get() = sharedPrefs.getBoolean("disableWifiScan", false)
     set(value) = sharedPrefs.edit {
         putBoolean("disableWifiScan", value)
         FakeLoc.enableMockWifi = value

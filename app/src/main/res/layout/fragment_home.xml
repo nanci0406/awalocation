@@ -8,8 +8,8 @@
     android:clipToPadding="false"
     tools:context=".ui.home.HomeFragment">
 
-    <com.baidu.mapapi.map.MapView
-        android:id="@+id/bmapView"
+    <com.amap.api.maps.MapView
+        android:id="@+id/mapView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clickable="true"

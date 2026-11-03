@@ -8,11 +8,13 @@ import android.os.Bundle
 import android.util.Log
 import com.nanci.awalocation.Awalocation
 import com.nanci.awalocation.android.root.ShellUtils
+import com.nanci.awalocation.ext.accuracy
 import com.nanci.awalocation.ext.altitude
 import com.nanci.awalocation.ext.debug
 import com.nanci.awalocation.ext.disableFusedProvider
 import com.nanci.awalocation.ext.disableGetCurrentLocation
 import com.nanci.awalocation.ext.disableRegisterLocationListener
+import com.nanci.awalocation.ext.disableWifiScan
 import com.nanci.awalocation.ext.enableAGPS
 import com.nanci.awalocation.ext.enableGetFromLocation
 import com.nanci.awalocation.ext.enableNMEA
@@ -20,6 +22,7 @@ import com.nanci.awalocation.ext.enableRequestGeofence
 import com.nanci.awalocation.ext.enableStepMock
 import com.nanci.awalocation.ext.minSatelliteCount
 import com.nanci.awalocation.ext.needDowngradeToCdma
+import com.nanci.awalocation.ext.needOpenSELinux
 import com.nanci.awalocation.ext.speed
 import com.nanci.awalocation.ext.reportDuration
 import com.nanci.awalocation.ext.loopBroadcastlocation
@@ -77,7 +80,9 @@ object MockServiceHelper {
         }
         val rely = Bundle()
         rely.putString("command_id", "start_gnss_mock")
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also {
+            if (it) FakeLoc.enableMockGnss = true
+        }
     }
 
     fun stopGnssMock(locationManager: LocationManager): Boolean {
@@ -86,7 +91,9 @@ object MockServiceHelper {
         }
         val rely = Bundle()
         rely.putString("command_id", "stop_gnss_mock")
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also {
+            if (it) FakeLoc.enableMockGnss = false
+        }
     }
 
     fun isWifiMockStart(locationManager: LocationManager): Boolean {
@@ -107,7 +114,9 @@ object MockServiceHelper {
         }
         val rely = Bundle()
         rely.putString("command_id", "start_wifi_mock")
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also {
+            if (it) FakeLoc.enableMockWifi = true
+        }
     }
 
     fun stopWifiMock(locationManager: LocationManager): Boolean {
@@ -116,7 +125,9 @@ object MockServiceHelper {
         }
         val rely = Bundle()
         rely.putString("command_id", "stop_wifi_mock")
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also {
+            if (it) FakeLoc.enableMockWifi = false
+        }
     }
 
     fun isStepMockStart(locationManager: LocationManager): Boolean {
@@ -142,7 +153,12 @@ object MockServiceHelper {
         val rely = Bundle()
         rely.putString("command_id", "start_step_mock")
         rely.putFloat("cadence", cadence)
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also {
+            if (it) {
+                FakeLoc.enableMockStep = true
+                FakeLoc.stepCadence = cadence
+            }
+        }
     }
 
     fun stopStepMock(locationManager: LocationManager): Boolean {
@@ -154,7 +170,9 @@ object MockServiceHelper {
         }
         val rely = Bundle()
         rely.putString("command_id", "stop_step_mock")
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also {
+            if (it) FakeLoc.enableMockStep = false
+        }
     }
 
     fun setStepCadence(locationManager: LocationManager, cadence: Float): Boolean {
@@ -167,7 +185,9 @@ object MockServiceHelper {
         val rely = Bundle()
         rely.putString("command_id", "set_step_cadence")
         rely.putFloat("cadence", cadence)
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also {
+            if (it) FakeLoc.stepCadence = cadence
+        }
     }
 
     fun tryOpenMock(
@@ -179,6 +199,11 @@ object MockServiceHelper {
         if (!::randomKey.isInitialized) {
             return false
         }
+        runCatching {
+            if (Awalocation.appContext.needOpenSELinux) {
+                ShellUtils.setEnforceMode(false)
+            }
+        }
         runCatching { Awalocation.appContext }.getOrNull()?.let { loadAwalocationLibrary(it) }
         val rely = Bundle()
         rely.putString("command_id", "start")
@@ -187,7 +212,9 @@ object MockServiceHelper {
         rely.putFloat("accuracy", accuracy)
         startLoopBroadcastLocation(locationManager)
         return if(locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)) {
-            isMockStart(locationManager)
+            isMockStart(locationManager).also { started ->
+                if (started) FakeLoc.enable = true
+            }
         } else {
             false
         }
@@ -201,7 +228,9 @@ object MockServiceHelper {
         rely.putString("command_id", "stop")
         stopLoopBroadcastLocation()
         if (locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)) {
-            return !isMockStart(locationManager)
+            return (!isMockStart(locationManager)).also { closed ->
+                if (closed) FakeLoc.enable = false
+            }
         }
         return false
     }
@@ -246,7 +275,12 @@ object MockServiceHelper {
         val rely = Bundle()
         rely.putString("command_id", "set_bearing")
         rely.putDouble("bearing", bearing)
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also {
+            if (it) {
+                FakeLoc.bearing = bearing
+                FakeLoc.hasBearings = true
+            }
+        }
     }
 
     fun setSpeed(locationManager: LocationManager, speed: Float): Boolean {
@@ -255,8 +289,11 @@ object MockServiceHelper {
         }
         val rely = Bundle()
         rely.putString("command_id", "set_speed")
-        rely.putFloat("speed", speed)
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        // RemoteCommandHandler uses getDouble("speed"), so keep the Bundle type consistent.
+        rely.putDouble("speed", speed.toDouble())
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also {
+            if (it) FakeLoc.speed = speed.toDouble()
+        }
     }
 
     fun setAltitude(locationManager: LocationManager, altitude: Double): Boolean {
@@ -266,7 +303,9 @@ object MockServiceHelper {
         val rely = Bundle()
         rely.putString("command_id", "set_altitude")
         rely.putDouble("altitude", altitude)
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also {
+            if (it) FakeLoc.altitude = altitude
+        }
     }
 
     fun setSpeedAmplitude(locationManager: LocationManager, speedAmplitude: Double): Boolean {
@@ -286,7 +325,7 @@ object MockServiceHelper {
         val rely = Bundle()
         rely.putString("command_id", "get_speed")
         if(locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)) {
-            return rely.getFloat("speed")
+            return rely.getDouble("speed").toFloat()
         }
         return null
     }
@@ -298,7 +337,7 @@ object MockServiceHelper {
         val rely = Bundle()
         rely.putString("command_id", "get_bearing")
         if(locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)) {
-            return rely.getFloat("bearing")
+            return rely.getDouble("bearing").toFloat()
         }
         return null
     }
@@ -367,6 +406,7 @@ object MockServiceHelper {
 
         FakeLoc.altitude = context.altitude
         FakeLoc.speed = context.speed
+        FakeLoc.accuracy = context.accuracy
         FakeLoc.enableDebugLog = context.debug
         FakeLoc.disableGetCurrentLocation = context.disableGetCurrentLocation
         FakeLoc.disableRegisterLocationListener = context.disableRegisterLocationListener
@@ -379,6 +419,7 @@ object MockServiceHelper {
         FakeLoc.disableGetFromLocation = !context.enableGetFromLocation
         FakeLoc.enableMockStep = context.enableStepMock
         FakeLoc.stepCadence = context.stepCadence
+        FakeLoc.enableMockWifi = context.disableWifiScan
 
         val rely = Bundle()
         rely.putString("command_id", "put_config")
@@ -386,6 +427,7 @@ object MockServiceHelper {
         rely.putBoolean("enable_gnss_mock", FakeLoc.enableMockGnss)
         rely.putDouble("altitude", FakeLoc.altitude)
         rely.putDouble("speed", FakeLoc.speed)
+        rely.putFloat("accuracy", FakeLoc.accuracy)
         rely.putBoolean("enable_debug_log", FakeLoc.enableDebugLog)
         rely.putBoolean("disable_get_current_location", FakeLoc.disableGetCurrentLocation)
         rely.putBoolean("disable_register_location_listener", FakeLoc.disableRegisterLocationListener)
@@ -398,6 +440,7 @@ object MockServiceHelper {
         rely.putBoolean("disable_get_from_location", FakeLoc.disableGetFromLocation)
         rely.putBoolean("enable_step_mock", FakeLoc.enableMockStep)
         rely.putFloat("step_cadence", FakeLoc.stepCadence)
+        rely.putBoolean("enable_mock_wifi", FakeLoc.enableMockWifi)
 
         return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
     }

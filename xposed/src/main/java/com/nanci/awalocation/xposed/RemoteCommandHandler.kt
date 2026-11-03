@@ -10,6 +10,7 @@ import com.nanci.awalocation.xposed.hooks.sensor.StepSensorHook
 import com.nanci.awalocation.xposed.utils.FakeLoc
 import com.nanci.awalocation.xposed.utils.BinderUtils
 import com.nanci.awalocation.xposed.utils.Logger
+import java.io.File
 import java.util.Collections
 import kotlin.random.Random
 
@@ -334,6 +335,7 @@ object RemoteCommandHandler {
                 val enableMockStep = rely.getBoolean("enable_step_mock", FakeLoc.enableMockStep)
                 val stepCadence = rely.getFloat("step_cadence", FakeLoc.stepCadence)
                 val enableMockGnss = rely.getBoolean("enable_gnss_mock", FakeLoc.enableMockGnss)
+                val enableMockWifi = rely.getBoolean("enable_mock_wifi", FakeLoc.enableMockWifi)
 
                 FakeLoc.enable = enable
                 FakeLoc.speed = speed
@@ -369,6 +371,7 @@ object RemoteCommandHandler {
                     StepSensorHook.stopFeeder()
                 }
                 FakeLoc.enableMockGnss = enableMockGnss
+                FakeLoc.enableMockWifi = enableMockWifi
                 if (enableMockGnss && FakeLoc.isSystemServerProcess) {
                     LocationServiceHook.startGnssMockDaemon()
                     LocationServiceHook.callOnGnssStatusChanged()
@@ -382,6 +385,7 @@ object RemoteCommandHandler {
                 rely.putDouble("longitude", FakeLoc.longitude)
                 rely.putDouble("altitude", FakeLoc.altitude)
                 rely.putDouble("speed", FakeLoc.speed)
+                rely.putFloat("accuracy", FakeLoc.accuracy)
                 rely.putDouble("speed_amplitude", FakeLoc.speedAmplitude)
                 rely.putBoolean("has_bearings", FakeLoc.hasBearings)
                 rely.putDouble("bearing", FakeLoc.bearing)
@@ -398,6 +402,7 @@ object RemoteCommandHandler {
                 rely.putBoolean("need_downgrade_to_2g", FakeLoc.needDowngradeToCdma)
                 rely.putBoolean("enable_step_mock", FakeLoc.enableMockStep)
                 rely.putFloat("step_cadence", FakeLoc.stepCadence)
+                rely.putBoolean("enable_mock_wifi", FakeLoc.enableMockWifi)
                 return true
             }
             "broadcast_location" -> {
@@ -406,14 +411,23 @@ object RemoteCommandHandler {
             }
             "load_library" -> {
                 val path = rely.getString("path") ?: return false
+                val allowedFile = runCatching {
+                    File("/data/local/awalocation-lib/libawalocation.so").canonicalFile
+                }.getOrNull() ?: return false
+                val requestedFile = runCatching { File(path).canonicalFile }.getOrNull()
+                if (requestedFile != allowedFile) {
+                    Logger.warn("Rejected load_library path: $path")
+                    rely.putString("result", "rejected path")
+                    return false
+                }
 
-                if (Dobby.isLoaded && path.endsWith("libawalocation.so")) {
+                if (Dobby.isLoaded) {
                     resolveSystemSensorHandles()
                     rely.putString("result", "success")
                     return true
                 }
                 runCatching {
-                    System.load(path)
+                    System.load(allowedFile.path)
                 }.onSuccess {
                     rely.putString("result", "success")
                     Dobby.isLoaded = true

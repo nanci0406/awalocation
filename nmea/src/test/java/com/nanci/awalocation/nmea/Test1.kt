@@ -37,11 +37,11 @@ fun main() {
     val lon = 113.8939
     val degree = lat.toInt()
     val minute = (lat - degree) * 60
-    val latitude = degree + minute / 100
+    val latitude = degree * 100 + minute
 
     val degree2 = lon.toInt()
     val minute2 = (lon - degree2) * 60
-    val longitude = degree2 + minute2 / 100
+    val longitude = degree2 * 100 + minute2
 
     println("Latitude: $latitude")
     println("Longitude: $longitude")

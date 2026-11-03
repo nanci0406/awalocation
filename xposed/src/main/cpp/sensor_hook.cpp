@@ -62,7 +62,7 @@ static const char* kConvertSymbols[] = {
 static int mSensorHandleStepDetector = -1;
 static int mSensorHandleStepCounter = -1;
 static std::atomic<int> isMocking{0};
-static std::atomic<int> step_sim_enabled{1};
+static std::atomic<int> step_sim_enabled{0};
 static std::atomic<float> current_spm{120.0f};
 static int step_event_counter = 0;
 static std::atomic<uint64_t> step_synth_events{0};
@@ -418,8 +418,12 @@ JNIEXPORT void JNICALL
 Java_com_nanci_awalocation_dobby_Dobby_setStatus(JNIEnv* env, jobject thiz, jboolean status) {
     bool s = (status != JNI_FALSE);
     isMocking.store(s ? 1 : 0, std::memory_order_release);
-    step_sim_enabled.store(s ? 1 : 0, std::memory_order_release);
-    setRouteSimulationActive(s);
+
+    // setStatus controls the location-mock lifecycle only. Step/gait simulation is
+    // enabled separately by setStepSimEnabled(true) / setRouteSimulation(true), so
+    // starting a location mock must not implicitly turn on sensor injection.
+    step_sim_enabled.store(0, std::memory_order_release);
+    setRouteSimulationActive(false);
     KLOGI(kHookTag, "Dobby.setStatus: status=%d", s ? 1 : 0);
 }
 

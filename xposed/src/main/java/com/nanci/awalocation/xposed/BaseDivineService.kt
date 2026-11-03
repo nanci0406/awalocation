@@ -103,10 +103,12 @@ abstract class BaseDivineService {
         if (locationManager.sendExtraCommand("awalocation", randomKey, rely) ||
             locationManager.sendExtraCommand("awalocation", randomKey, rely)) {
             FakeLoc.enable = rely.getBoolean("enable", FakeLoc.enable)
+            FakeLoc.enableMockGnss = rely.getBoolean("enable_gnss_mock", FakeLoc.enableMockGnss)
             FakeLoc.latitude = rely.getDouble("latitude", FakeLoc.latitude)
             FakeLoc.longitude = rely.getDouble("longitude", FakeLoc.longitude)
             FakeLoc.altitude = rely.getDouble("altitude", FakeLoc.altitude)
             FakeLoc.speed = rely.getDouble("speed", FakeLoc.speed)
+            FakeLoc.accuracy = rely.getFloat("accuracy", FakeLoc.accuracy)
             FakeLoc.speedAmplitude = rely.getDouble("speed_amplitude", FakeLoc.speedAmplitude)
             FakeLoc.hasBearings = rely.getBoolean("has_bearings", FakeLoc.hasBearings)
             FakeLoc.bearing = rely.getDouble("bearing", FakeLoc.bearing)
@@ -127,6 +129,7 @@ abstract class BaseDivineService {
             FakeLoc.needDowngradeToCdma = rely.getBoolean("need_downgrade_to_2g", FakeLoc.needDowngradeToCdma)
             FakeLoc.enableMockStep = rely.getBoolean("enable_step_mock", FakeLoc.enableMockStep)
             FakeLoc.stepCadence = rely.getFloat("step_cadence", FakeLoc.stepCadence).coerceAtLeast(0f)
+            FakeLoc.enableMockWifi = rely.getBoolean("enable_mock_wifi", FakeLoc.enableMockWifi)
             Logger.debug("Synced config for DivineService")
         } else {
             Logger.error("Failed to sync config for DivineService")

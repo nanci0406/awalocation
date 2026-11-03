@@ -25,6 +25,7 @@ import com.nanci.awalocation.R
 import com.nanci.awalocation.android.widget.RockerView
 import com.nanci.awalocation.android.window.OverlayUtils
 import com.nanci.awalocation.databinding.FragmentMockBinding
+import com.nanci.awalocation.ext.accuracy
 import com.nanci.awalocation.ext.altitude
 import com.nanci.awalocation.ext.drawOverOtherAppsEnabled
 import com.nanci.awalocation.ext.historicalLocations
@@ -234,7 +235,7 @@ class MockFragment : Fragment() {
             val context = requireContext()
             val speed = context.speed
             val altitude = context.altitude
-            val accuracy = FakeLoc.accuracy
+            val accuracy = context.accuracy
 
             button.isClickable = false
             try {

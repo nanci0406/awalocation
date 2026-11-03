@@ -1,4 +1,4 @@
-package com.nanci.awalocation.bdmap
+package com.nanci.awalocation.amap
 
 import kotlin.math.atan2
 import kotlin.math.cos

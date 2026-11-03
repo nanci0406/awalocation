@@ -19,41 +19,30 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
+import androidx.navigation.findNavController
 import com.alibaba.fastjson2.JSON
 import com.alibaba.fastjson2.JSONObject
-import com.baidu.location.BDAbstractLocationListener
-import com.baidu.location.BDLocation
-import com.baidu.location.LocationClient
-import com.baidu.location.LocationClientOption
-import com.baidu.mapapi.map.BaiduMap
-import com.baidu.mapapi.map.LogoPosition
-import com.baidu.mapapi.map.MapPoi
-import com.baidu.mapapi.map.MapStatusUpdateFactory
-import com.baidu.mapapi.map.MarkerOptions
-import com.baidu.mapapi.map.MyLocationData
-import com.baidu.mapapi.map.PolylineOptions
-import com.baidu.mapapi.model.LatLng
-import com.baidu.mapapi.search.geocode.ReverseGeoCodeOption
+import com.amap.api.maps.AMap
+import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.model.PolylineOptions
+import com.amap.api.services.core.LatLonPoint
+import com.amap.api.services.geocoder.GeocodeSearch
+import com.amap.api.services.geocoder.RegeocodeQuery
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
-import kotlinx.coroutines.launch
-import com.nanci.awalocation.MainActivity
-import com.nanci.awalocation.Awalocation
 import com.nanci.awalocation.R
-import com.nanci.awalocation.bdmap.locateMe
-import com.nanci.awalocation.bdmap.setMapConfig
+import com.nanci.awalocation.amap.MapSelection
+import com.nanci.awalocation.amap.animateTo
+import com.nanci.awalocation.amap.setupMap
+import com.nanci.awalocation.amap.showSelection
 import com.nanci.awalocation.databinding.FragmentRouteEditBinding
 import com.nanci.awalocation.ext.gcj02
 import com.nanci.awalocation.ext.getHistoricalRoutesList
 import com.nanci.awalocation.ext.saveHistoricalRoutesList
-import androidx.navigation.findNavController
 import com.nanci.awalocation.ext.mapType
 import com.nanci.awalocation.ext.wgs84
-import com.nanci.awalocation.ui.viewmodel.BaiduMapViewModel
+import com.nanci.awalocation.ui.viewmodel.AmapMapViewModel
 import com.nanci.awalocation.ui.viewmodel.HomeViewModel
-import java.util.List
-import kotlin.random.Random
 
 
 class RouteEditFragment : Fragment() {
@@ -61,8 +50,7 @@ class RouteEditFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val routeEditViewModel by viewModels<HomeViewModel>()
-    private lateinit var mLocationClient: LocationClient
-    private val baiduMapViewModel by activityViewModels<BaiduMapViewModel>()
+    private val mapViewModel by activityViewModels<AmapMapViewModel>()
 
     private var mPoints: ArrayList<Pair<Double, Double>> = arrayListOf()
     private var isDrawing = false
@@ -75,74 +63,54 @@ class RouteEditFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentRouteEditBinding.inflate(inflater, container, false)
+        binding.mapView.onCreate(savedInstanceState)
 
-        with(baiduMapViewModel) {
+        with(mapViewModel) {
             isExists = true
-            baiduMap = binding.bmapView.map
+            amap = binding.mapView.map
         }
 
-        with(binding.bmapView) {
-            showZoomControls(true)
-            showScaleControl(true)
-            logoPosition = LogoPosition.logoPostionRightBottom
-        }
+        val currentMapType = context?.mapType ?: AMap.MAP_TYPE_NORMAL
+        with(binding.mapView.map) {
+            setupMap(requireContext())
+            moveCamera(CameraUpdateFactory.zoomTo(17f))
+            setMapType(currentMapType)
 
-        with(binding.bmapView.map) {
-            setMapStatus(MapStatusUpdateFactory.zoomTo(19f))
-
-            mapType = context?.mapType ?: BaiduMap.MAP_TYPE_NORMAL
-            compassPosition = Point(40, 100)
-            setCompassEnable(true)
-            uiSettings.isCompassEnabled = true
-            uiSettings.isOverlookingGesturesEnabled = true
-            isMyLocationEnabled = true
-
-            setMapConfig(
-                baiduMapViewModel.perspectiveState,
-                if (Random.nextBoolean()) com.nanci.awalocation.R.drawable.icon_my_location else null
-            )
-
-            setOnMapClickListener(object : BaiduMap.OnMapClickListener {
-                override fun onMapClick(loc: LatLng) {
-                    // 默认获取的gcj02坐标，需要转换一下
-                    baiduMapViewModel.markedLoc = loc.wgs84
-
-                    lifecycleScope.launch {
-                        baiduMapViewModel.showDetailView = false
-                        baiduMapViewModel.mGeoCoder?.reverseGeoCode(
-                            ReverseGeoCodeOption().location(
-                                loc
-                            )
-                        )
-                    }
-
-                    // Fixed the issue that getting geolocation information was stuck
-                    lifecycleScope.launch {
-                        markMap()
-                    }
-                }
-
-                override fun onMapPoiClick(poi: MapPoi) {}
-            })
+            setOnMapClickListener { loc ->
+                mapViewModel.markedLoc = loc.wgs84
+                mapViewModel.showDetailView = false
+                mapViewModel.geocodeSearch?.getFromLocationAsyn(
+                    RegeocodeQuery(
+                        LatLonPoint(loc.latitude, loc.longitude),
+                        200f,
+                        GeocodeSearch.AMAP
+                    )
+                )
+                markMap()
+            }
 
             setOnMapLongClickListener { loc ->
-                if (loc == null) return@setOnMapLongClickListener
+                mapViewModel.markedLoc = loc.wgs84
+                mapViewModel.showDetailView = true
+                mapViewModel.geocodeSearch?.getFromLocationAsyn(
+                    RegeocodeQuery(
+                        LatLonPoint(loc.latitude, loc.longitude),
+                        200f,
+                        GeocodeSearch.AMAP
+                    )
+                )
+                markMap()
+            }
 
-                // 默认获取的gcj02坐标，需要转换一下
-                baiduMapViewModel.markedLoc = loc.wgs84
-                lifecycleScope.launch {
-                    baiduMapViewModel.showDetailView = true
-                    baiduMapViewModel.mGeoCoder?.reverseGeoCode(ReverseGeoCodeOption().location(loc))
-                }
-                lifecycleScope.launch {
-                    markMap()
-                }
+            setOnMyLocationChangeListener { location ->
+                if (location == null) return@setOnMyLocationChangeListener
+                mapViewModel.currentLocation = location.wgs84
             }
 
             binding.mapTypeGroup.check(
-                when (mapType) {
-                    BaiduMap.MAP_TYPE_NORMAL -> com.nanci.awalocation.R.id.map_type_normal
-                    BaiduMap.MAP_TYPE_SATELLITE -> com.nanci.awalocation.R.id.map_type_satellite
+                when (currentMapType) {
+                    AMap.MAP_TYPE_NORMAL -> com.nanci.awalocation.R.id.map_type_normal
+                    AMap.MAP_TYPE_SATELLITE -> com.nanci.awalocation.R.id.map_type_satellite
                     else -> com.nanci.awalocation.R.id.map_type_normal
                 }
             )
@@ -235,67 +203,27 @@ class RouteEditFragment : Fragment() {
             }
         }
 
-        mLocationClient = LocationClient(requireContext())
-        val option = LocationClientOption()
-        option.enableSimulateGps = false
-        option.setIsNeedAddress(true) /* 关掉这个无法获取当前城市 */
-        option.setNeedDeviceDirect(true)
-        option.isLocationNotify = true
-        option.setIgnoreKillProcess(true)
-        option.setIsNeedLocationDescribe(false)
-        option.setIsNeedLocationPoiList(false)
-        option.isOpenGnss = true
-        option.setIsNeedAltitude(false)
-        option.locationMode = LocationClientOption.LocationMode.Hight_Accuracy
-
-        option.setCoorType(Awalocation.DEFAULT_COORD_STR)
-        option.setScanSpan(1000)
-        mLocationClient.locOption = option
-        mLocationClient.registerLocationListener(object : BDAbstractLocationListener() {
-            override fun onReceiveLocation(loc: BDLocation?) {
-                if (loc == null) return
-                val locData = MyLocationData.Builder()
-                    .accuracy(loc.radius)
-                    .direction(loc.direction)
-                    .latitude(loc.latitude)
-                    .longitude(loc.longitude)
-                    .build()
-
-                if (loc.city != null)
-                    MainActivity.mCityString = loc.city
-
-                with(baiduMapViewModel) {
-                    currentLocation = loc.wgs84
-                    baiduMap.setMyLocationData(locData)
-                }
-            }
-        })
-        baiduMapViewModel.mLocationClient = mLocationClient
-        mLocationClient.enableLocInForeground(1, baiduMapViewModel.mNotification)
-        mLocationClient.start()
-
         binding.mapTypeGroup.setOnCheckedChangeListener { _, checkedId ->
-            when (checkedId) {
-                com.nanci.awalocation.R.id.map_type_normal -> {
-                    binding.bmapView.map.mapType = BaiduMap.MAP_TYPE_NORMAL
-                }
-
-                com.nanci.awalocation.R.id.map_type_satellite -> {
-                    binding.bmapView.map.mapType = BaiduMap.MAP_TYPE_SATELLITE
-                }
-
+            val mapType = when (checkedId) {
+                com.nanci.awalocation.R.id.map_type_normal -> AMap.MAP_TYPE_NORMAL
+                com.nanci.awalocation.R.id.map_type_satellite -> AMap.MAP_TYPE_SATELLITE
                 else -> {
-                    Log.e("HomeFragment", "Unknown location view mode: $checkedId")
+                    Log.e("RouteEditFragment", "Unknown location view mode: $checkedId")
+                    AMap.MAP_TYPE_NORMAL
                 }
             }
-            context?.mapType = binding.bmapView.map.mapType
+            binding.mapView.map.setMapType(mapType)
+            context?.mapType = mapType
         }
 
-        baiduMapViewModel.baiduMap.setOnMapTouchListener {
+        mapViewModel.amap.setOnMapTouchListener { event ->
             if (isDrawing) {
-                val currentPoint = baiduMapViewModel.baiduMap.mapStatus.target.wgs84
+                // 用触摸点而不是地图中心作为路径点，否则绘制出的路线会始终挤在屏幕中心。
+                val currentPoint = mapViewModel.amap.projection
+                    .fromScreenLocation(Point(event.x.toInt(), event.y.toInt()))
+                    .wgs84
 
-                when (it.action) {
+                when (event.action) {
                     MotionEvent.ACTION_DOWN -> { // 新增 DOWN 事件处理
                         if (mPoints.size <= 0) {
                             mPoints.add(currentPoint)
@@ -340,58 +268,65 @@ class RouteEditFragment : Fragment() {
         }
 
         binding.fabMyLocation.setOnClickListener {
-            baiduMapViewModel.baiduMap.locateMe()
+            val current = mapViewModel.currentLocation
+            if (current != null) {
+                mapViewModel.amap.animateTo(current.gcj02, 17f)
+            } else {
+                Toast.makeText(requireContext(), "尚未获取到当前位置", Toast.LENGTH_SHORT).show()
+            }
         }
 
         return binding.root
     }
 
     private fun refresh() {
-        baiduMapViewModel.baiduMap.clear() // 清除之前的所有覆盖物
+        mapViewModel.amap.clear() // 清除之前的所有覆盖物
+        mapViewModel.selectedMarker = null
 
         // 绘制之前记录的点到点的线
         for (i in 0 until mPoints.size - 1) {
-            baiduMapViewModel.baiduMap.addOverlay(
+            mapViewModel.amap.addPolyline(
                 PolylineOptions()
                     .color(Color.argb(178, 0, 78, 255))
-                    .width(10)
-                    .points(List.of<LatLng>(mPoints[i].gcj02, mPoints[i + 1].gcj02))
+                    .width(10f)
+                    .add(mPoints[i].gcj02, mPoints[i + 1].gcj02)
             )
         }
     }
 
     private fun drawLine(start: Pair<Double, Double>, end: Pair<Double, Double>) {
-        baiduMapViewModel.baiduMap.clear() // 清除之前的所有覆盖物
+        mapViewModel.amap.clear() // 清除之前的所有覆盖物
+        mapViewModel.selectedMarker = null
 
         // 绘制之前记录的点到点的线
         for (i in 0 until mPoints.size - 1) {
-            baiduMapViewModel.baiduMap.addOverlay(
+            mapViewModel.amap.addPolyline(
                 PolylineOptions()
                     .color(Color.argb(178, 0, 78, 255))
-                    .width(10)
-                    .points(List.of<LatLng>(mPoints[i].gcj02, mPoints[i + 1].gcj02))
+                    .width(10f)
+                    .add(mPoints[i].gcj02, mPoints[i + 1].gcj02)
             )
         }
 
-        baiduMapViewModel.baiduMap.addOverlay(
+        mapViewModel.amap.addPolyline(
             PolylineOptions()
                 .color(Color.argb(178, 0, 78, 255))
-                .width(10)
-                .points(List.of<LatLng>(start.gcj02, end.gcj02))
+                .width(10f)
+                .add(start.gcj02, end.gcj02)
         )
     }
 
 
-    private fun markMap(moveEyes: Boolean = false) = with(baiduMapViewModel) {
-        val loc = markedLoc!!.gcj02
-        val ooA = MarkerOptions()
-            .position(loc)
-            .icon(mMapIndicator)
-        baiduMap.clear()
-        baiduMap.addOverlay(ooA)
+    private fun markMap(moveEyes: Boolean = false) = with(mapViewModel) {
+        val wgsLoc = markedLoc ?: return
+        val gcjLoc = wgsLoc.gcj02
+        selectedMarker = amap.showSelection(
+            MapSelection(wgsLoc, gcjLoc, markName),
+            mMapIndicator
+        )
 
         if (moveEyes) {
-            baiduMap.setMapStatus(MapStatusUpdateFactory.newLatLng(loc))
+            amap.animateTo(gcjLoc, 17f)
         }
     }
 
@@ -498,5 +433,39 @@ class RouteEditFragment : Fragment() {
             .show()
 
         return true
+    }
+
+    override fun onResume() {
+        super.onResume()
+        _binding?.let {
+            mapViewModel.amap = it.mapView.map
+            mapViewModel.isExists = true
+            it.mapView.onResume()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        _binding?.mapView?.onPause()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        _binding?.mapView?.onSaveInstanceState(outState)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding?.let {
+            val map = it.mapView.map
+            // 只有当前 Fragment 的地图仍是共享地图时才清状态，避免切换页面时把新页面覆盖掉。
+            if (mapViewModel.isExists && mapViewModel.amap === map) {
+                mapViewModel.isExists = false
+            }
+            map.setMyLocationEnabled(false)
+            it.mapView.onDestroy()
+        }
+        mapViewModel.selectedMarker = null
+        _binding = null
     }
 }

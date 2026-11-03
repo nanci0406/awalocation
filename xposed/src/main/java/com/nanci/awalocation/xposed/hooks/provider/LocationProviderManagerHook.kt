@@ -5,7 +5,6 @@ import android.location.LocationManager
 import android.os.Build
 import android.telephony.CellIdentity
 import android.telephony.CellInfo
-import android.util.ArrayMap
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
@@ -23,7 +22,7 @@ import java.util.Collections
 
 object LocationProviderManagerHook {
     private val hookOnFetchLocationResult = beforeHook {
-        if (args.isEmpty() || args.isEmpty()) return@beforeHook
+        if (args.isEmpty() || args[0] == null) return@beforeHook
         if (!FakeLoc.enable) return@beforeHook
 
         if (FakeLoc.enableDebugLog) {
@@ -206,51 +205,8 @@ object LocationProviderManagerHook {
             }
         }
 
-        cLocationProviderManager.onceHookMethodBefore("onReportLocation") {
-            val fieldMRegistrations = XposedHelpers.findFieldIfExists(cLocationProviderManager, "mRegistrations")
-            if (fieldMRegistrations == null) {
-                Logger.error("Failed to find mRegistrations in LocationProviderManager")
-                return@onceHookMethodBefore
-            }
-            if (!fieldMRegistrations.isAccessible)
-                fieldMRegistrations.isAccessible = true
-
-            if (!FakeLoc.enable) {
-                return@onceHookMethodBefore
-            }
-
-            val registrations = fieldMRegistrations.get(thisObject) as ArrayMap<*, *>
-            val newRegistrations = ArrayMap<Any, Any>()
-            registrations.forEach { registration ->
-                val value = registration.value ?: return@forEach
-                val locationResult = args[0]
-
-                val mLocationsField = XposedHelpers.findFieldIfExists(locationResult.javaClass, "mLocations")
-                if (mLocationsField == null) {
-                    Logger.error("Failed to find mLocations in LocationResult")
-                    return@onceHookMethodBefore
-                }
-                mLocationsField.isAccessible = true
-                val mLocations = mLocationsField.get(locationResult) as ArrayList<*>
-
-                val originLocation = mLocations.firstOrNull() as? Location
-                    ?: Location(LocationManager.GPS_PROVIDER)
-                val location = injectLocation(originLocation)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    location.isMock = false
-                }
-                mLocationsField.set(locationResult, arrayListOf(location))
-
-                val operation = XposedHelpers.callMethod(value, "acceptLocationChange", locationResult)
-                XposedHelpers.callMethod(value, "executeOperation", operation)
-            }
-
-            if (FakeLoc.enableDebugLog) {
-                Logger.debug("onReportLocation: injected!")
-            }
-
-            fieldMRegistrations.set(thisObject, newRegistrations)
-        }
+        // 旧的 onReportLocation 手写 mRegistrations 转发逻辑会清空注册表，已移除；
+        // 位置注入统一由 reportLocation / onReportLocation 的 hookOnFetchLocationResult 完成。
     }
 
     private fun hookGeofenceProvider(classLoader: ClassLoader) {

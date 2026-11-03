@@ -9,6 +9,7 @@ import com.nanci.awalocation.xposed.utils.FakeLoc
 import com.nanci.awalocation.xposed.utils.Logger
 import com.nanci.awalocation.nmea.NMEA
 import com.nanci.awalocation.nmea.NmeaValue
+import kotlin.math.abs
 import kotlin.random.Random
 
 abstract class BaseLocationHook: BaseDivineService() {
@@ -72,12 +73,8 @@ abstract class BaseLocationHook: BaseDivineService() {
         }
         location.bearing = modBearing.toFloat()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            location.bearingAccuracyDegrees = modBearing.toFloat()
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (location.hasBearingAccuracy() && location.bearingAccuracyDegrees == 0.0f) {
-                location.bearingAccuracyDegrees = 1.0f
-            }
+            // bearingAccuracyDegrees is an error bound (degrees), not the bearing itself.
+            location.bearingAccuracyDegrees = 5.0f
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -106,8 +103,9 @@ abstract class BaseLocationHook: BaseDivineService() {
             if (originLocation.hasMslAltitude()) {
                 location.mslAltitudeMeters = FakeLoc.altitude
             }
-            if (originLocation.hasVerticalAccuracy()) {
-                location.mslAltitudeAccuracyMeters = FakeLoc.altitude.toFloat()
+            if (originLocation.hasMslAltitudeAccuracy()) {
+                // 复制真实精度，不能把海拔本身当作“海拔精度”。
+                location.mslAltitudeAccuracyMeters = originLocation.mslAltitudeAccuracyMeters
             }
         }
         if (FakeLoc.hideMock) {
@@ -133,6 +131,17 @@ abstract class BaseLocationHook: BaseDivineService() {
         }
 
         return location
+    }
+
+    /**
+     * NMEA ddmm.mmmm uses an absolute value plus an N/S or E/W hemisphere field.
+     * Keep that contract for negative coordinates as well.
+     */
+    private fun nmeaCoordinate(value: Double): Double {
+        val absolute = abs(value)
+        val degree = absolute.toInt()
+        val minute = (absolute - degree) * 60
+        return degree * 100 + minute
     }
 
     fun injectNMEA(nmeaStr: String): String? {
@@ -161,13 +170,8 @@ abstract class BaseLocationHook: BaseDivineService() {
                     value.latitudeHemisphere = latitudeHemisphere
                     value.longitudeHemisphere = longitudeHemisphere
 
-                    var degree = FakeLoc.latitude.toInt()
-                    var minute = (FakeLoc.latitude - degree) * 60
-                    value.latitude = degree + minute / 100
-
-                    degree = FakeLoc.longitude.toInt()
-                    minute = (FakeLoc.longitude - degree) * 60
-                    value.longitude = degree + minute / 100
+                    value.latitude = nmeaCoordinate(FakeLoc.latitude)
+                    value.longitude = nmeaCoordinate(FakeLoc.longitude)
 
                     return value.toNmeaString()
                 }
@@ -186,13 +190,8 @@ abstract class BaseLocationHook: BaseDivineService() {
                     value.latitudeHemisphere = latitudeHemisphere
                     value.longitudeHemisphere = longitudeHemisphere
 
-                    var degree = FakeLoc.latitude.toInt()
-                    var minute = (FakeLoc.latitude - degree) * 60
-                    value.latitude = degree + minute / 100
-
-                    degree = FakeLoc.longitude.toInt()
-                    minute = (FakeLoc.longitude - degree) * 60
-                    value.longitude = degree + minute / 100
+                    value.latitude = nmeaCoordinate(FakeLoc.latitude)
+                    value.longitude = nmeaCoordinate(FakeLoc.longitude)
 
                     return value.toNmeaString()
                 }
@@ -217,13 +216,8 @@ abstract class BaseLocationHook: BaseDivineService() {
                     value.latitudeHemisphere = latitudeHemisphere
                     value.longitudeHemisphere = longitudeHemisphere
 
-                    var degree = FakeLoc.latitude.toInt()
-                    var minute = (FakeLoc.latitude - degree) * 60
-                    value.latitude = degree + minute / 100
-
-                    degree = FakeLoc.longitude.toInt()
-                    minute = (FakeLoc.longitude - degree) * 60
-                    value.longitude = degree + minute / 100
+                    value.latitude = nmeaCoordinate(FakeLoc.latitude)
+                    value.longitude = nmeaCoordinate(FakeLoc.longitude)
 
                     return value.toNmeaString()
                 }

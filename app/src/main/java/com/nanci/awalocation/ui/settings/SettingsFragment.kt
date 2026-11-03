@@ -18,6 +18,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.nanci.awalocation.R
 import com.nanci.awalocation.databinding.FragmentSettingsBinding
 import com.nanci.awalocation.xposed.utils.FakeLoc
@@ -29,7 +30,6 @@ import com.nanci.awalocation.ext.disableGetCurrentLocation
 import com.nanci.awalocation.ext.disableRegisterLocationListener
 import com.nanci.awalocation.ext.disableWifiScan
 import com.nanci.awalocation.ext.enableStepMock
-import com.nanci.awalocation.ext.hookSensor
 import com.nanci.awalocation.ext.loopBroadcastlocation
 import com.nanci.awalocation.ext.minSatelliteCount
 import com.nanci.awalocation.ext.needDowngradeToCdma
@@ -67,7 +67,7 @@ class SettingsFragment : Fragment() {
                 isChecked: Boolean
             ) {
                 context.needOpenSELinux = isChecked
-                showToast(if (isChecked) "已开启SELinux" else "已关闭SELinux")
+                showToast(if (isChecked) "已开启SELinux，下次启动模拟生效" else "已关闭SELinux")
             }
         })
 
@@ -126,6 +126,9 @@ class SettingsFragment : Fragment() {
                 }
                 context.accuracy = value
                 binding.accuracyValue.text = "%.2f米".format(value)
+                if (MockServiceHelper.isServiceInit()) {
+                    updateRemoteConfig()
+                }
             }
         }
 
@@ -189,25 +192,13 @@ class SettingsFragment : Fragment() {
             }
         })
 
-        binding.sensorHookSwitch.isChecked = context.hookSensor
-        binding.sensorHookSwitch.setOnCheckedChangeListener(object: CompoundButton.OnCheckedChangeListener {
-            override fun onCheckedChanged(
-                buttonView: CompoundButton,
-                isChecked: Boolean
-            ) {
-                context.hookSensor = isChecked
-                showToast("重新启动生效")
-                updateRemoteConfig()
-            }
-        })
-
         binding.reportDurationLayout.setOnClickListener {
             showDialog("设置上报间隔", binding.reportDurationValue.text.toString().let {
                 it.substring(0, it.length - 2)
             }) {
                 val value = it.toIntOrNull()
-                if (value == null || value < 0) {
-                    Toast.makeText(context, "上报间隔不合法", Toast.LENGTH_SHORT).show()
+                if (value == null || value < 20) {
+                    Toast.makeText(context, "上报间隔不能小于20ms", Toast.LENGTH_SHORT).show()
                     return@showDialog
                 } else if (value > 1000) {
                     Toast.makeText(context, "上报间隔不能大于1s", Toast.LENGTH_SHORT).show()
@@ -241,15 +232,26 @@ class SettingsFragment : Fragment() {
         binding.disableWlanScanSwitch.isChecked = requireContext().disableWifiScan
         binding.disableWlanScanSwitch.setOnCheckedChangeListener { _, isChecked ->
             requireContext().disableWifiScan = isChecked
-            with(mockServiceViewModel) {
-                if (isChecked) {
-                    if(!MockServiceHelper.startWifiMock(locationManager!!)) {
-                        showToast("禁用WLAN扫描失败: 无法连接到系统服务")
-                    }
-                } else {
-                    if(!MockServiceHelper.stopWifiMock(locationManager!!)) {
-                        showToast("启用WLAN扫描失败: 无法连接到系统服务")
-                    }
+            val lm = mockServiceViewModel.locationManager
+                ?: (context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager)
+            if (lm == null) {
+                showToast("定位服务加载异常")
+                return@setOnCheckedChangeListener
+            }
+            if (!MockServiceHelper.isServiceInit()) {
+                MockServiceHelper.tryInitService(lm)
+            }
+            if (!MockServiceHelper.isServiceInit()) {
+                showToast("系统服务注入失败")
+                return@setOnCheckedChangeListener
+            }
+            if (isChecked) {
+                if (!MockServiceHelper.startWifiMock(lm)) {
+                    showToast("禁用WLAN扫描失败: 无法连接到系统服务")
+                }
+            } else {
+                if (!MockServiceHelper.stopWifiMock(lm)) {
+                    showToast("启用WLAN扫描失败: 无法连接到系统服务")
                 }
             }
         }
@@ -258,17 +260,32 @@ class SettingsFragment : Fragment() {
         binding.stepMockSwitch.setOnCheckedChangeListener { _, isChecked ->
             context.enableStepMock = isChecked
             FakeLoc.enableMockStep = isChecked
-            val lm = mockServiceViewModel.locationManager ?: (context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager)
-            if (lm != null) {
-                if (!MockServiceHelper.isServiceInit()) {
-                    MockServiceHelper.tryInitService(lm)
+            lifecycleScope.launch {
+                val lm = mockServiceViewModel.locationManager
+                    ?: (context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager)
+                if (lm == null) {
+                    showToast("定位服务加载异常")
+                    return@launch
                 }
-                if (MockServiceHelper.isServiceInit()) {
-                    if (isChecked) {
-                        MockServiceHelper.startStepMock(lm, context.stepCadence)
-                    } else {
-                        MockServiceHelper.stopStepMock(lm)
+
+                val ok = try {
+                    withContext(Dispatchers.IO) {
+                        if (!MockServiceHelper.isServiceInit()) {
+                            MockServiceHelper.tryInitService(lm)
+                        }
+                        when {
+                            !MockServiceHelper.isServiceInit() -> false
+                            isChecked -> MockServiceHelper.startStepMock(lm, context.stepCadence)
+                            else -> MockServiceHelper.stopStepMock(lm)
+                        }
                     }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    false
+                }
+                if (!ok) {
+                    showToast(if (isChecked) "步频模拟启动失败" else "步频模拟停止失败")
                 }
             }
         }
@@ -288,17 +305,31 @@ class SettingsFragment : Fragment() {
                 context.stepCadence = value
                 FakeLoc.stepCadence = value
                 binding.stepCadenceValue.text = formatStepCadence(value)
-                val lm = mockServiceViewModel.locationManager ?: (context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager)
-                if (lm != null) {
-                    if (!MockServiceHelper.isServiceInit()) {
-                        MockServiceHelper.tryInitService(lm)
+                lifecycleScope.launch {
+                    val lm = mockServiceViewModel.locationManager
+                        ?: (context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager)
+                    if (lm == null) {
+                        showToast("定位服务加载异常")
+                        return@launch
                     }
-                    if (MockServiceHelper.isServiceInit()) {
-                        if (context.enableStepMock) {
-                            MockServiceHelper.startStepMock(lm, value)
-                        } else {
-                            MockServiceHelper.setStepCadence(lm, value)
+                    val ok = try {
+                        withContext(Dispatchers.IO) {
+                            if (!MockServiceHelper.isServiceInit()) {
+                                MockServiceHelper.tryInitService(lm)
+                            }
+                            when {
+                                !MockServiceHelper.isServiceInit() -> false
+                                context.enableStepMock -> MockServiceHelper.startStepMock(lm, value)
+                                else -> MockServiceHelper.setStepCadence(lm, value)
+                            }
                         }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        false
+                    }
+                    if (!ok) {
+                        showToast("步频设置失败")
                     }
                 }
             }
@@ -331,12 +362,20 @@ class SettingsFragment : Fragment() {
 
     private fun updateRemoteConfig() {
         val context = requireContext()
-        with(mockServiceViewModel) {
-            if(!MockServiceHelper.putConfig(locationManager!!, context)) {
-                showToast("更新远程配置失败")
-            } else {
-                showToast("同步配置成功")
-            }
+        val lm = mockServiceViewModel.locationManager
+            ?: (context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager)
+        if (lm == null) {
+            showToast("定位服务加载异常")
+            return
+        }
+        if (!MockServiceHelper.isServiceInit()) {
+            showToast("系统服务注入失败")
+            return
+        }
+        if (!MockServiceHelper.putConfig(lm, context)) {
+            showToast("更新远程配置失败")
+        } else {
+            showToast("同步配置成功")
         }
     }
 

@@ -29,12 +29,13 @@ class MockServiceViewModel : ViewModel() {
     private lateinit var rockerJob: Job
     private lateinit var routeMockJob: Job
     var isRockerLocked = false
-    var routeStage = 0
+    @Volatile var routeStage = 0
     val rockerCoroutineController = CoroutineController()
     val routeMockCoroutine = CoroutineRouteMock()
 
     var isRouteStart = false
 
+    @Volatile
     var locationManager: LocationManager? = null
         set(value) {
             field = value
@@ -43,7 +44,7 @@ class MockServiceViewModel : ViewModel() {
         }
 
     var selectedLocation: HistoricalLocation? = null
-    var selectedRoute: HistoricalRoute? = null
+    @Volatile var selectedRoute: HistoricalRoute? = null
 
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -52,20 +53,27 @@ class MockServiceViewModel : ViewModel() {
             rocker = Rocker(activity)
         }
 
-        if (!::rockerJob.isInitialized || rockerJob.isCancelled) {
+        val appContext = activity.applicationContext
+
+        if (!::rockerJob.isInitialized || !rockerJob.isActive) {
             rockerCoroutineController.pause()
-            val delayTime = activity.reportDuration.toLong()
-            val applicationContext = activity.applicationContext
+            val delayTime = appContext.reportDuration.toLong()
             rockerJob = GlobalScope.launch {
                 do {
                     rockerCoroutineController.controlledCoroutine()
                     delay(delayTime)
 
-                    CrashReport.setUserSceneTag(applicationContext, 261773)
-                    val currentSpeed = activity.speed
+                    val lm = locationManager
+                    if (lm == null) {
+                        rockerCoroutineController.pause()
+                        continue
+                    }
+
+                    CrashReport.setUserSceneTag(appContext, 261773)
+                    val currentSpeed = appContext.speed
                     FakeLoc.speed = currentSpeed
                     val stepDistance = currentSpeed * (delayTime / 1000.0)
-                    if(!MockServiceHelper.move(locationManager!!, stepDistance, FakeLoc.bearing)) {
+                    if(!MockServiceHelper.move(lm, stepDistance, FakeLoc.bearing)) {
                         Log.e("MockServiceViewModel", "Failed to move")
                     }
 
@@ -82,30 +90,46 @@ class MockServiceViewModel : ViewModel() {
         FakeLoc.altitude = activity.altitude
         FakeLoc.accuracy = activity.accuracy
 
-        if (!::routeMockJob.isInitialized || routeMockJob.isCancelled) {
+        if (!::routeMockJob.isInitialized || !routeMockJob.isActive) {
             routeMockCoroutine.pause()
-            val delayTime = activity.reportDuration.toLong()
+            val delayTime = appContext.reportDuration.toLong()
             routeMockJob = GlobalScope.launch {
-                do {
+                routeLoop@ do {
                     routeMockCoroutine.routeMockCoroutine()
                     delay(delayTime)
+
+                    val lm = locationManager
+                    val route = selectedRoute
+                    if (lm == null || route == null || route.route.isEmpty()) {
+                        routeMockCoroutine.pause()
+                        rocker.autoStatus = false
+                        routeStage = 0
+                        continue@routeLoop
+                    }
+
                     // 如果是第0阶段，定位到第一个点
                     if (routeStage == 0) {
-                        MockServiceHelper.setLocation(
-                            locationManager!!,
-                            selectedRoute!!.route[0].first,
-                            selectedRoute!!.route[0].second
-                        )
+                        val first = route.route[0]
+                        if (!MockServiceHelper.setLocation(lm, first.first, first.second)) {
+                            Log.e("MockServiceViewModel", "Failed to set route start location")
+                            routeMockCoroutine.pause()
+                            rocker.autoStatus = false
+                            continue@routeLoop
+                        }
                         routeStage++
                     }
-                    val route = selectedRoute!!.route
 
                     // 处理所有已到达的阶段
                     var reachedWaypointInThisTick = false
-                    while (routeStage < route.size) {
-                        val target = route[routeStage]
-                        val location = MockServiceHelper.getLocation(locationManager!!)
-                        val currentLat = location!!.first
+                    while (routeStage < route.route.size) {
+                        val target = route.route[routeStage]
+                        val location = MockServiceHelper.getLocation(lm)
+                        if (location == null) {
+                            routeMockCoroutine.pause()
+                            rocker.autoStatus = false
+                            continue@routeLoop
+                        }
+                        val currentLat = location.first
                         val currentLon = location.second
 
                         val inverse = Geodesic.WGS84.Inverse(
@@ -114,17 +138,18 @@ class MockServiceViewModel : ViewModel() {
                             target.first,
                             target.second
                         )
-                        val currentSpeed = activity.speed
+                        val currentSpeed = appContext.speed
                         FakeLoc.speed = currentSpeed
                         val stepDistance = currentSpeed * (delayTime / 1000.0)
                         // 判断距离是否小于1米或本次步长
                         if (inverse.s12 < 1.0 || inverse.s12 < stepDistance) {
                             // 精确设置位置到目标点并进入下一阶段
-                            MockServiceHelper.setLocation(
-                                locationManager!!,
-                                target.first,
-                                target.second
-                            )
+                            if (!MockServiceHelper.setLocation(lm, target.first, target.second)) {
+                                Log.e("MockServiceViewModel", "Failed to set waypoint location")
+                                routeMockCoroutine.pause()
+                                rocker.autoStatus = false
+                                continue@routeLoop
+                            }
                             routeStage++
                             reachedWaypointInThisTick = true
                         } else {
@@ -133,22 +158,27 @@ class MockServiceViewModel : ViewModel() {
                     }
 
                     // 检查是否已完成所有阶段
-                    if (routeStage >= route.size) {
+                    if (routeStage >= route.route.size) {
                         routeMockCoroutine.pause()
                         rocker.autoStatus = false
-                        // 重设阶段
+                        // 重设阶段，保持任务存活，下一次自动播放可以重新开始
                         routeStage = 0
-                        break // 退出循环
+                        continue@routeLoop
                     }
 
                     if (reachedWaypointInThisTick) {
-                        continue
+                        continue@routeLoop
                     }
 
                     // 处理当前目标点的移动
-                    val target = route[routeStage]
-                    val location = MockServiceHelper.getLocation(locationManager!!)
-                    val currentLat = location!!.first
+                    val target = route.route[routeStage]
+                    val location = MockServiceHelper.getLocation(lm)
+                    if (location == null) {
+                        routeMockCoroutine.pause()
+                        rocker.autoStatus = false
+                        continue@routeLoop
+                    }
+                    val currentLat = location.first
                     val currentLon = location.second
 
                     val inverse = Geodesic.WGS84.Inverse(
@@ -162,16 +192,11 @@ class MockServiceViewModel : ViewModel() {
                         azimuth += 360
                     }
 
-                    val currentSpeed = activity.speed
+                    val currentSpeed = appContext.speed
                     FakeLoc.speed = currentSpeed
                     val stepDistance = currentSpeed * (delayTime / 1000.0)
                     Log.d("MockServiceViewModel", "从 $currentLat, $currentLon 移动到 ${target.first}, ${target.second}, 方位角: $azimuth, 步长: $stepDistance")
-                    if (!MockServiceHelper.move(
-                            locationManager!!,
-                            stepDistance,
-                            azimuth
-                        )
-                    ) {
+                    if (!MockServiceHelper.move(lm, stepDistance, azimuth)) {
                         Log.e("MockServiceViewModel", "移动失败")
                     }
                 } while (isActive)
@@ -185,5 +210,18 @@ class MockServiceViewModel : ViewModel() {
         return locationManager != null && MockServiceHelper.isServiceInit() && MockServiceHelper.isMockStart(
             locationManager!!
         )
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        if (::rockerJob.isInitialized) {
+            rockerJob.cancel()
+        }
+        if (::routeMockJob.isInitialized) {
+            routeMockJob.cancel()
+        }
+        if (::rocker.isInitialized && rocker.isStart) {
+            runCatching { rocker.hide() }
+        }
     }
 }

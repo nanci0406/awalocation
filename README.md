@@ -4,9 +4,9 @@
 
 **下一代 Android 原生级高精度虚拟定位与高拟真步态传感器模拟控制台**
 
-[![Android](https://img.shields.io/badge/Android-9.0--17%20(API%2028--36)-3DDC84?style=flat-square&logo=android&logoColor=white)](#)
+[![Android](https://img.shields.io/badge/Android-8.0--17%20(API%2026--36)-3DDC84?style=flat-square&logo=android&logoColor=white)](#)
 [![Xposed](https://img.shields.io/badge/Framework-LSPosed%20%7C%20EdXposed-673AB7?style=flat-square)](#)
-[![Architecture](https://img.shields.io/badge/Arch-arm64--v8a%20%7C%20x86__64-orange?style=flat-square)](#)
+[![Architecture](https://img.shields.io/badge/Arch-arm64--v8a-orange?style=flat-square)](#)
 [![Version](https://img.shields.io/badge/Release-v2.0.0-blue?style=flat-square)](#)
 [![License](https://img.shields.io/badge/License-Apache%202.0-lightgrey?style=flat-square)](LICENSE)
 
@@ -55,7 +55,7 @@
 ### 4. 极致安全与稳定性保障
 - **开机第二屏防护（Anti-Bootloop）**：采用严格的 **按需懒加载（Lazy Load）** 机制。模块在手机开机阶段绝不触发 Native 符号查找或 SensorManager 请求，彻底规避 `system_server` 早期死锁与看门狗重启。
 - **系统核心进程隔离**：自动防御并跳过 `com.android.systemui`、系统桌面、WebView 等核心渲染进程，防止误注入引起掉帧或 UI 崩溃。
-- **SELinux 与现代 Android 适配**：全面兼容 Android 9.0 ~ Android 17 (API 28 ~ 36)，包括澎湃 OS (HyperOS)、ColorOS、OriginOS 等定制 ROM。
+- **SELinux 与现代 Android 适配**：全面兼容 Android 8.0 ~ Android 17 (API 26 ~ 36)，包括澎湃 OS (HyperOS)、ColorOS、OriginOS 等定制 ROM。
 
 ### 5. 交互式调试辅助
 - **悬浮移动摇杆（Floating Rocker）**：支持在任意应用上方悬浮半透明虚拟摇杆，步进平滑移动，支持自定义摇杆移动步长与瞬时速度。
@@ -97,8 +97,8 @@ flowchart TD
 
 | 项目 | 要求 | 说明 |
 | :--- | :--- | :--- |
-| **Android 版本** | Android 9.0 (API 28) ~ Android 17 (API 36) | 完美支持 HyperOS 1/2/3/4、原生 Android 等 |
-| **设备架构** | `arm64-v8a` (推荐), `x86_64` | 32位老旧架构已不作推荐 |
+| **Android 版本** | Android 8.0 (API 26) ~ Android 17 (API 36) | 完美支持 HyperOS 1/2/3/4、原生 Android 等 |
+| **设备架构** | `arm64-v8a` | 高德 3D 地图 11.3 合包仅提供 arm64-v8a / armeabi-v7a |
 | **Root 方案** | Magisk / KernelSU / APatch | 需要 Root 权限用于管理 `/data/local/awalocation-lib` |
 | **Hook 框架** | LSPosed / LSPosed_mod / EdXposed | 必须在 LSPosed 中勾选本模块 |
 
@@ -140,12 +140,21 @@ flowchart TD
 git clone https://github.com/nanci0406/awalocation.git
 cd awalocation
 
-# 2. 赋予脚本执行权限
+# 2. 配置高德 Key（也可以写在 gradle.properties 中）
+export AMAP_API_KEY="你的高德 Android Key"
+
+# 3. 赋予脚本执行权限
 chmod +x gradlew
 
-# 3. 编译全架构 Release APK
+# 4. 编译 Release APK
 ./gradlew :app:assembleRelease --parallel
 ```
+
+> 高德 Key 需要与正式签名 APK 的 SHA1 和包名 `com.nanci.awalocation` 匹配；未配置 Key 时地图会显示空白。
+>
+> GitHub Actions 构建请在仓库 `Settings -> Secrets and variables -> Actions` 中添加 Secret：`AMAP_API_KEY`，工作流会自动注入到 APK 的 Manifest 中。
+>
+> 高德 Key 还需要绑定签名证书 SHA1。如果工作流没有配置 `SIGN_KEYSTORE_BASE64`，会使用每次构建临时生成的签名，SHA1 会变化，高德 Key 将无法匹配；正式发版请配置固定签名。
 
 编译产物将生成于：
 - `app/build/outputs/apk/arm64/release/awalocation-v2.0.0-*-arm64.apk`

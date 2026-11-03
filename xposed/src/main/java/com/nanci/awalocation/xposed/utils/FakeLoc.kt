@@ -47,7 +47,7 @@ object FakeLoc {
     /**
      * 模拟步频（步/分钟），0 表示根据模拟速度自动推算
      */
-    var stepCadence = 0f
+    @Volatile var stepCadence = 0f
 
     /**
      * 是否禁用GetCurrentLocation方法（在部分系统不禁用可能导致hook失效）
@@ -132,7 +132,7 @@ object FakeLoc {
             }
         }
 
-    var accuracy = 25.0f
+    @Volatile var accuracy = 25.0f
         set(value) {
             field = if (value < 0) {
                 -value
@@ -152,9 +152,21 @@ object FakeLoc {
         return radius * c
     }
 
-    fun jitterLocation(lat: Double = latitude, lon: Double = longitude, n: Double = Random.nextDouble(0.0, accuracy.toDouble()), angle: Double = bearing): Pair<Double, Double> {
+    fun jitterLocation(lat: Double = latitude, lon: Double = longitude, n: Double = -1.0, angle: Double = bearing): Pair<Double, Double> {
+        val maxJitter = accuracy.toDouble()
+        val distance = when {
+            n >= 0.0 -> n
+            maxJitter > 0.0 -> Random.nextDouble(0.0, maxJitter)
+            else -> 0.0
+        }
+
+        // accuracy 为 0 时表示不添加抖动，避免 Random.nextDouble(0.0, 0.0) 抛异常。
+        if (distance <= 0.0) {
+            return Pair(lat, lon)
+        }
+
         val earthRadius = 6371000.0
-        val radiusInDegrees = n / 15 / earthRadius * (180 / PI)
+        val radiusInDegrees = distance / earthRadius * (180 / PI)
 
         val jitterAngle = if (Random.nextBoolean()) angle + 45 else angle - 45
 

@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "moe.fuqiuluo.hardcoder"
+    namespace = "com.nanci.awalocation.systemapi"
     compileSdk = 36
 
     defaultConfig {

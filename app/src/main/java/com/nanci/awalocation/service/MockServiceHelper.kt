@@ -6,7 +6,7 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import com.nanci.awalocation.Portal
+import com.nanci.awalocation.Awalocation
 import com.nanci.awalocation.android.root.ShellUtils
 import com.nanci.awalocation.ext.altitude
 import com.nanci.awalocation.ext.debug
@@ -24,7 +24,7 @@ import com.nanci.awalocation.ext.speed
 import com.nanci.awalocation.ext.reportDuration
 import com.nanci.awalocation.ext.loopBroadcastlocation
 import com.nanci.awalocation.ext.stepCadence
-import moe.fuqiuluo.xposed.utils.FakeLoc
+import com.nanci.awalocation.xposed.utils.FakeLoc
 import java.io.File
 
 object MockServiceHelper {
@@ -138,7 +138,7 @@ object MockServiceHelper {
                 return false
             }
         }
-        runCatching { Portal.appContext }.getOrNull()?.let { loadPortalLibrary(it) }
+        runCatching { Awalocation.appContext }.getOrNull()?.let { loadAwalocationLibrary(it) }
         val rely = Bundle()
         rely.putString("command_id", "start_step_mock")
         rely.putFloat("cadence", cadence)
@@ -179,7 +179,7 @@ object MockServiceHelper {
         if (!::randomKey.isInitialized) {
             return false
         }
-        runCatching { Portal.appContext }.getOrNull()?.let { loadPortalLibrary(it) }
+        runCatching { Awalocation.appContext }.getOrNull()?.let { loadAwalocationLibrary(it) }
         val rely = Bundle()
         rely.putString("command_id", "start")
         rely.putDouble("speed", speed)
@@ -408,7 +408,7 @@ object MockServiceHelper {
 
 
     private fun startLoopBroadcastLocation(locationManager: LocationManager){
-        val appContext = Portal.appContext
+        val appContext = Awalocation.appContext
         val delayTime=appContext.reportDuration.toLong()
 
         if(isRunning) return
@@ -439,24 +439,24 @@ object MockServiceHelper {
     }
 
 
-    fun loadPortalLibrary(context: Context): Boolean {
+    fun loadAwalocationLibrary(context: Context): Boolean {
         if (!ShellUtils.hasRoot()) return false
 
         val soDir = File("/data/local/awalocation-lib")
-        val soFile = File(soDir, "libportal.so")
+        val soFile = File(soDir, "libawalocation.so")
         val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"
 
         runCatching {
             var sourceSo: File? = null
-            val apkSoFile = File(context.applicationInfo.nativeLibraryDir, "libportal.so")
+            val apkSoFile = File(context.applicationInfo.nativeLibraryDir, "libawalocation.so")
             if (apkSoFile.exists() && apkSoFile.canRead()) {
                 sourceSo = apkSoFile
             } else {
                 val apkPath = context.applicationInfo.sourceDir
                 val apkFile = java.util.zip.ZipFile(apkPath)
-                val entry = apkFile.getEntry("lib/$abi/libportal.so")
+                val entry = apkFile.getEntry("lib/$abi/libawalocation.so")
                 if (entry != null) {
-                    val cacheSo = File(context.cacheDir, "libportal.so")
+                    val cacheSo = File(context.cacheDir, "libawalocation.so")
                     apkFile.getInputStream(entry).use { input ->
                         cacheSo.outputStream().use { output ->
                             input.copyTo(output)
@@ -474,15 +474,15 @@ object MockServiceHelper {
                 ShellUtils.executeCommand("cp ${sourceSo.absolutePath} ${soFile.absolutePath}")
                 ShellUtils.executeCommand("chmod 777 ${soFile.absolutePath}")
                 ShellUtils.executeCommand("chcon u:object_r:system_file:s0 ${soFile.absolutePath}")
-                Log.i("MockServiceHelper", "Deployed libportal.so to ${soFile.absolutePath}")
+                Log.i("MockServiceHelper", "Deployed libawalocation.so to ${soFile.absolutePath}")
             }
         }.onFailure {
-            Log.w("MockServiceHelper", "Failed to deploy portal library", it)
+            Log.w("MockServiceHelper", "Failed to deploy awalocation library", it)
         }
 
         val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return false
         val result = loadLibrary(lm, soFile.absolutePath)
-        Log.d("MockServiceHelper", "load portal library result: $result")
+        Log.d("MockServiceHelper", "load awalocation library result: $result")
         return result == "success"
     }
 }

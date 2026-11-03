@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    style="@style/Portal.Card.Compact"
+    style="@style/Awalocation.Card.Compact"
     android:layout_width="310dp"
     android:layout_height="wrap_content"
-    app:cardBackgroundColor="@color/portal_surface"
+    app:cardBackgroundColor="@color/awalocation_surface"
     app:cardCornerRadius="20dp"
     app:cardElevation="6dp"
     app:contentPadding="16dp"
-    app:strokeColor="@color/portal_outline_variant"
+    app:strokeColor="@color/awalocation_outline_variant"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -27,7 +27,7 @@
                 android:layout_height="18dp"
                 android:contentDescription="@null"
                 app:srcCompat="@drawable/baseline_location_on_24"
-                app:tint="@color/portal_primary" />
+                app:tint="@color/awalocation_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -35,7 +35,7 @@
                 android:layout_marginStart="6dp"
                 android:text="@string/address"
                 android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                android:textColor="@color/portal_primary"
+                android:textColor="@color/awalocation_primary"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -47,7 +47,7 @@
             android:ellipsize="end"
             android:maxLines="2"
             android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-            android:textColor="@color/portal_text_color"
+            android:textColor="@color/awalocation_text_color"
             android:textIsSelectable="true" />
 
         <View
@@ -55,14 +55,14 @@
             android:layout_height="0.8dp"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="10dp"
-            android:background="@color/portal_outline_variant" />
+            android:background="@color/awalocation_outline_variant" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/latlon"
             android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-            android:textColor="@color/portal_on_surface_variant" />
+            android:textColor="@color/awalocation_on_surface_variant" />
 
         <TextView
             android:id="@+id/loc_detail"
@@ -77,7 +77,7 @@
             android:paddingEnd="10dp"
             android:paddingBottom="6dp"
             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-            android:textColor="@color/portal_text_color"
+            android:textColor="@color/awalocation_text_color"
             android:textIsSelectable="true" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

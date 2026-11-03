@@ -39,7 +39,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
 import com.nanci.awalocation.MainActivity
-import com.nanci.awalocation.Portal
+import com.nanci.awalocation.Awalocation
 import com.nanci.awalocation.R
 import com.nanci.awalocation.bdmap.locateMe
 import com.nanci.awalocation.bdmap.setMapConfig
@@ -248,7 +248,7 @@ class RouteEditFragment : Fragment() {
         option.setIsNeedAltitude(false)
         option.locationMode = LocationClientOption.LocationMode.Hight_Accuracy
 
-        option.setCoorType(Portal.DEFAULT_COORD_STR)
+        option.setCoorType(Awalocation.DEFAULT_COORD_STR)
         option.setScanSpan(1000)
         mLocationClient.locOption = option
         mLocationClient.registerLocationListener(object : BDAbstractLocationListener() {

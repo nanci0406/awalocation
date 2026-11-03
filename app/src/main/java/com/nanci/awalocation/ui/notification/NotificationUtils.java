@@ -15,7 +15,7 @@ public class NotificationUtils extends ContextWrapper {
 
     private NotificationManager mManager;
     public static final String ANDROID_CHANNEL_ID = "com.nanci.awalocation";
-    public static final String ANDROID_CHANNEL_NAME = "Portal Location";
+    public static final String ANDROID_CHANNEL_NAME = "Awalocation Location";
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     public NotificationUtils(Context base) {

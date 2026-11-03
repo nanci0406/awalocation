@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/portal_background"
+    android:background="@color/awalocation_background"
     android:clipChildren="false"
     android:clipToPadding="false"
     tools:context=".ui.mock.RouteMockFragment">
@@ -20,14 +20,14 @@
         <!-- 目标路线卡片 -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/mock_location_card"
-            style="@style/Portal.Card"
+            style="@style/Awalocation.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/portal_surface"
+            app:cardBackgroundColor="@color/awalocation_surface"
             app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:contentPadding="18dp"
-            app:strokeColor="@color/portal_outline_variant"
+            app:strokeColor="@color/awalocation_outline_variant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -48,7 +48,7 @@
                         android:contentDescription="@null"
                         android:padding="11dp"
                         app:srcCompat="@drawable/baseline_route_24"
-                        app:tint="@color/portal_primary" />
+                        app:tint="@color/awalocation_primary" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -61,14 +61,14 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/target_route"
-                            android:textAppearance="@style/Portal.SectionTitle" />
+                            android:textAppearance="@style/Awalocation.SectionTitle" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="沿预设路线与速度自动移动"
-                            android:textAppearance="@style/Portal.BodySecondary"
+                            android:textAppearance="@style/Awalocation.BodySecondary"
                             android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -82,7 +82,7 @@
                     android:maxLines="1"
                     android:text="@string/none_route"
                     android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
-                    android:textColor="@color/portal_text_color"
+                    android:textColor="@color/awalocation_text_color"
                     android:textStyle="bold" />
 
                 <TextView
@@ -90,7 +90,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:text="可在下方列表选择已有路线或新建路线"
-                    android:textAppearance="@style/Portal.BodySecondary" />
+                    android:textAppearance="@style/Awalocation.BodySecondary" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -101,7 +101,7 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/switch_mock"
-                        style="@style/Portal.Button"
+                        style="@style/Awalocation.Button"
                         android:layout_width="0dp"
                         android:layout_height="48dp"
                         android:layout_weight="1"
@@ -146,14 +146,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/history_route"
-                android:textAppearance="@style/Portal.SectionTitle" />
+                android:textAppearance="@style/Awalocation.SectionTitle" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="左右滑动删除"
                 android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-                android:textColor="@color/portal_hint_color" />
+                android:textColor="@color/awalocation_hint_color" />
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
@@ -185,24 +185,24 @@
             android:layout_marginBottom="14dp"
             android:contentDescription="@string/add_route"
             android:visibility="gone"
-            app:backgroundTint="@color/portal_surface"
+            app:backgroundTint="@color/awalocation_surface"
             app:borderWidth="0dp"
             app:elevation="4dp"
             app:fabSize="mini"
             app:srcCompat="@drawable/baseline_add_location_24"
-            app:tint="@color/portal_primary" />
+            app:tint="@color/awalocation_primary" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:contentDescription="@string/quick_actions"
-            app:backgroundTint="@color/portal_primary"
+            app:backgroundTint="@color/awalocation_primary"
             app:borderWidth="0dp"
             app:elevation="6dp"
             app:fabSize="normal"
             app:srcCompat="@drawable/baseline_keyboard_arrow_up_24"
-            app:tint="@color/portal_on_primary" />
+            app:tint="@color/awalocation_on_primary" />
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

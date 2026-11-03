@@ -2,23 +2,23 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:background="@color/portal_background" android:gravity="center"
+    android:background="@color/awalocation_background" android:gravity="center"
     android:orientation="vertical" android:padding="32dp">
     <ImageView android:layout_width="80dp" android:layout_height="80dp"
         android:background="@drawable/bg_header_mark" android:contentDescription="@null"
         android:padding="20dp" app:srcCompat="@drawable/baseline_lock_24"
-        app:tint="@color/portal_primary" />
+        app:tint="@color/awalocation_primary" />
     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:layout_marginTop="24dp" android:text="需要必要权限"
         android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
-        android:textColor="@color/portal_text_color" android:textStyle="bold" />
+        android:textColor="@color/awalocation_text_color" android:textStyle="bold" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="12dp" android:gravity="center"
         android:text="@string/request_permission" android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-        android:textColor="@color/portal_on_surface_variant" />
+        android:textColor="@color/awalocation_on_surface_variant" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="8dp" android:gravity="center"
-        android:text="请在系统设置中授予权限后重新打开 Portal"
+        android:text="请在系统设置中授予权限后重新打开 Awalocation"
         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-        android:textColor="@color/portal_hint_color" />
+        android:textColor="@color/awalocation_hint_color" />
 </LinearLayout>

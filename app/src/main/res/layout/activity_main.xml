@@ -4,7 +4,7 @@
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/portal_background">
+    android:background="@color/awalocation_background">
 
     <include
         android:id="@+id/app_bar_main"
@@ -17,7 +17,7 @@
         android:layout_width="320dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="@color/portal_surface"
+        android:background="@color/awalocation_surface"
         android:scrollbars="none"
         app:elevation="16dp"
         app:topInsetScrimEnabled="false"
@@ -26,7 +26,7 @@
         app:itemIconPadding="14dp"
         app:itemIconSize="22dp"
         app:itemIconTint="@color/nav_item_tint"
-        app:itemShapeAppearance="@style/Portal.ShapeAppearance.NavItem"
+        app:itemShapeAppearance="@style/Awalocation.ShapeAppearance.NavItem"
         app:itemShapeFillColor="@color/nav_item_fill"
         app:itemShapeInsetStart="12dp"
         app:itemShapeInsetEnd="12dp"

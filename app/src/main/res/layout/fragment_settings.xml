@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/portal_background"
+    android:background="@color/awalocation_background"
     android:clipToPadding="false"
     android:fillViewport="true"
     android:scrollbars="none"
@@ -28,18 +28,18 @@
             android:layout_marginBottom="8dp"
             android:text="定位参数"
             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-            android:textColor="@color/portal_primary"
+            android:textColor="@color/awalocation_primary"
             android:textStyle="bold" />
 
         <com.google.android.material.card.MaterialCardView
-            style="@style/Portal.Card"
+            style="@style/Awalocation.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/portal_surface"
+            app:cardBackgroundColor="@color/awalocation_surface"
             app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
             app:contentPadding="0dp"
-            app:strokeColor="@color/portal_outline_variant"
+            app:strokeColor="@color/awalocation_outline_variant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -71,14 +71,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="定位海拔"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="模拟位置的海拔高度"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <TextView
@@ -87,7 +87,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:text="80.00米"
-                        android:textAppearance="@style/Portal.PreferenceValue" />
+                        android:textAppearance="@style/Awalocation.PreferenceValue" />
 
                     <ImageView
                         android:layout_width="16dp"
@@ -96,14 +96,14 @@
                         android:contentDescription="@null"
                         android:rotation="270"
                         app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/portal_outline" />
+                        app:tint="@color/awalocation_outline" />
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 移动速度 -->
                 <LinearLayout
@@ -129,14 +129,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="移动速度"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="摇杆与路线模拟的移动速度（公里/小时）"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <TextView
@@ -145,7 +145,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:text="5.0 公里/小时"
-                        android:textAppearance="@style/Portal.PreferenceValue" />
+                        android:textAppearance="@style/Awalocation.PreferenceValue" />
 
                     <ImageView
                         android:layout_width="16dp"
@@ -154,14 +154,14 @@
                         android:contentDescription="@null"
                         android:rotation="270"
                         app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/portal_outline" />
+                        app:tint="@color/awalocation_outline" />
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 定位精度 -->
                 <LinearLayout
@@ -187,14 +187,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="定位精度"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="向系统报告的定位误差范围"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <TextView
@@ -203,7 +203,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:text="3.00米"
-                        android:textAppearance="@style/Portal.PreferenceValue" />
+                        android:textAppearance="@style/Awalocation.PreferenceValue" />
 
                     <ImageView
                         android:layout_width="16dp"
@@ -212,14 +212,14 @@
                         android:contentDescription="@null"
                         android:rotation="270"
                         app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/portal_outline" />
+                        app:tint="@color/awalocation_outline" />
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 位置上报间隔 -->
                 <LinearLayout
@@ -245,14 +245,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="位置上报间隔"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="刷新并广播位置的最小时间周期"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <TextView
@@ -261,7 +261,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:text="1000ms"
-                        android:textAppearance="@style/Portal.PreferenceValue" />
+                        android:textAppearance="@style/Awalocation.PreferenceValue" />
 
                     <ImageView
                         android:layout_width="16dp"
@@ -270,14 +270,14 @@
                         android:contentDescription="@null"
                         android:rotation="270"
                         app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/portal_outline" />
+                        app:tint="@color/awalocation_outline" />
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 最小卫星数量 -->
                 <LinearLayout
@@ -303,14 +303,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="最小卫星数量"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="GNSS 模拟报告的最低卫星数"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <TextView
@@ -319,7 +319,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:text="12颗"
-                        android:textAppearance="@style/Portal.PreferenceValue" />
+                        android:textAppearance="@style/Awalocation.PreferenceValue" />
 
                     <ImageView
                         android:layout_width="16dp"
@@ -328,7 +328,7 @@
                         android:contentDescription="@null"
                         android:rotation="270"
                         app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/portal_outline" />
+                        app:tint="@color/awalocation_outline" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -342,18 +342,18 @@
             android:layout_marginBottom="8dp"
             android:text="定位行为"
             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-            android:textColor="@color/portal_primary"
+            android:textColor="@color/awalocation_primary"
             android:textStyle="bold" />
 
         <com.google.android.material.card.MaterialCardView
-            style="@style/Portal.Card"
+            style="@style/Awalocation.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/portal_surface"
+            app:cardBackgroundColor="@color/awalocation_surface"
             app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
             app:contentPadding="0dp"
-            app:strokeColor="@color/portal_outline_variant"
+            app:strokeColor="@color/awalocation_outline_variant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -384,14 +384,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="获取当前位置"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="允许应用调用 GetCurrentLocation"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -406,7 +406,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 注册位置监听 -->
                 <LinearLayout
@@ -431,14 +431,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="注册位置监听"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="允许应用请求位置更新并监听变化"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -453,7 +453,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 禁用融合定位 -->
                 <LinearLayout
@@ -478,14 +478,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="禁用融合定位"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="拦截 FusedLocationProvider 避免泄露"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -500,7 +500,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 网络降级 -->
                 <LinearLayout
@@ -525,14 +525,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="网络降级"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="降级蜂窝基站定位以提高兼容性"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -547,7 +547,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 禁用 WLAN 扫描 -->
                 <LinearLayout
@@ -572,14 +572,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="禁用 WLAN 扫描"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="阻止 Wi-Fi 扫描结果暴露真实位置"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -594,7 +594,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 连续广播位置 -->
                 <LinearLayout
@@ -619,14 +619,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="连续广播位置"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="循环广播最后一次已知的虚拟坐标"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -648,18 +648,18 @@
             android:layout_marginBottom="8dp"
             android:text="传感器模拟"
             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-            android:textColor="@color/portal_primary"
+            android:textColor="@color/awalocation_primary"
             android:textStyle="bold" />
 
         <com.google.android.material.card.MaterialCardView
-            style="@style/Portal.Card"
+            style="@style/Awalocation.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/portal_surface"
+            app:cardBackgroundColor="@color/awalocation_surface"
             app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
             app:contentPadding="0dp"
-            app:strokeColor="@color/portal_outline_variant"
+            app:strokeColor="@color/awalocation_outline_variant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -690,14 +690,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="传感器 Hook"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="劫持加速度计、陀螺仪与计步传感器"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -712,7 +712,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 步频模拟 -->
                 <LinearLayout
@@ -737,14 +737,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="步频模拟"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="在移动模拟时自动伪造步数增长"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -759,7 +759,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 模拟步频 -->
                 <LinearLayout
@@ -785,14 +785,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="模拟步频"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="设定每分钟步数（0 为根据速度自动计算）"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <TextView
@@ -801,7 +801,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:text="自动计算"
-                        android:textAppearance="@style/Portal.PreferenceValue" />
+                        android:textAppearance="@style/Awalocation.PreferenceValue" />
 
                     <ImageView
                         android:layout_width="16dp"
@@ -810,7 +810,7 @@
                         android:contentDescription="@null"
                         android:rotation="270"
                         app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/portal_outline" />
+                        app:tint="@color/awalocation_outline" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -824,18 +824,18 @@
             android:layout_marginBottom="8dp"
             android:text="高级选项"
             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-            android:textColor="@color/portal_primary"
+            android:textColor="@color/awalocation_primary"
             android:textStyle="bold" />
 
         <com.google.android.material.card.MaterialCardView
-            style="@style/Portal.Card"
+            style="@style/Awalocation.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/portal_surface"
+            app:cardBackgroundColor="@color/awalocation_surface"
             app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
             app:contentPadding="0dp"
-            app:strokeColor="@color/portal_outline_variant"
+            app:strokeColor="@color/awalocation_outline_variant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -866,14 +866,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="SELinux"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="在启动模拟时将 SELinux 置为宽容模式"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -888,7 +888,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/portal_outline_variant" />
+                    android:background="@color/awalocation_outline_variant" />
 
                 <!-- 调试模式 -->
                 <LinearLayout
@@ -913,14 +913,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="调试模式"
-                            android:textAppearance="@style/Portal.PreferenceTitle" />
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:text="在系统 Logcat 中输出模块详细调试日志"
-                            android:textAppearance="@style/Portal.PreferenceSummary" />
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch

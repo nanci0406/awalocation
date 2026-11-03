@@ -130,12 +130,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun showPermissionDeniedToast(permission: String) {
         val message = when (permission) {
-            ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION -> "Portal需要完整位置权限"
-            ACCESS_LOCATION_EXTRA_COMMANDS -> "Portal需要额外位置命令权限和系统交互"
-            CHANGE_WIFI_STATE, ACCESS_WIFI_STATE -> "Portal需要访问Wi-Fi状态"
-            READ_PHONE_STATE -> "Portal需要读取设备信息"
-            ACCESS_NETWORK_STATE, INTERNET -> "Portal需要访问网络"
-            VIBRATE -> "Portal需要访问传感器"
+            ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION -> "Awalocation需要完整位置权限"
+            ACCESS_LOCATION_EXTRA_COMMANDS -> "Awalocation需要额外位置命令权限和系统交互"
+            CHANGE_WIFI_STATE, ACCESS_WIFI_STATE -> "Awalocation需要访问Wi-Fi状态"
+            READ_PHONE_STATE -> "Awalocation需要读取设备信息"
+            ACCESS_NETWORK_STATE, INTERNET -> "Awalocation需要访问网络"
+            VIBRATE -> "Awalocation需要访问传感器"
             else -> "需要 $permission 才能运行"
         }
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
@@ -255,7 +255,7 @@ class MainActivity : AppCompatActivity() {
             mNotification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val notificationUtils = NotificationUtils(this@MainActivity)
                 val builder = notificationUtils.getAndroidChannelNotification(
-                    "Portal后台定位服务",
+                    "Awalocation后台定位服务",
                     "正在后台定位"
                 )
                 builder.build()
@@ -268,7 +268,7 @@ class MainActivity : AppCompatActivity() {
                 builder.setContentIntent(PendingIntent.getActivity(
                     this@MainActivity, 0, nfIntent, PendingIntent.FLAG_IMMUTABLE
                 ))
-                    .setContentTitle("Portal后台定位服务")
+                    .setContentTitle("Awalocation后台定位服务")
                     .setSmallIcon(R.mipmap.ic_launcher)
                     .setContentText("正在后台定位")
                     .setWhen(System.currentTimeMillis())
@@ -320,12 +320,12 @@ class MainActivity : AppCompatActivity() {
 
             for (permission in denied) {
                 Toast.makeText(this, when(permission) {
-                    ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION -> "Portal需要完整位置权限"
-                    ACCESS_LOCATION_EXTRA_COMMANDS -> "Portal需要额外位置命令权限和系统交互"
-                    CHANGE_WIFI_STATE, ACCESS_WIFI_STATE -> "Portal需要访问Wi-Fi状态"
-                    READ_PHONE_STATE -> "Portal需要读取设备信息"
-                    ACCESS_NETWORK_STATE, INTERNET -> "Portal需要访问网络"
-                    VIBRATE -> "Portal需要访问传感器"
+                    ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION -> "Awalocation需要完整位置权限"
+                    ACCESS_LOCATION_EXTRA_COMMANDS -> "Awalocation需要额外位置命令权限和系统交互"
+                    CHANGE_WIFI_STATE, ACCESS_WIFI_STATE -> "Awalocation需要访问Wi-Fi状态"
+                    READ_PHONE_STATE -> "Awalocation需要读取设备信息"
+                    ACCESS_NETWORK_STATE, INTERNET -> "Awalocation需要访问网络"
+                    VIBRATE -> "Awalocation需要访问传感器"
                     else -> "需要 $permission 才能运行"
                 } + "，请手动授权！", Toast.LENGTH_SHORT).show()
             }
@@ -348,7 +348,7 @@ class MainActivity : AppCompatActivity() {
         ImageViewCompat.setImageTintList(voiceBack, color)
         searchView.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)?.apply {
             setTextColor(ContextCompat.getColor(this@MainActivity, R.color.theme_appbar_text_color))
-            setHintTextColor(ContextCompat.getColor(this@MainActivity, R.color.portal_hint_color))
+            setHintTextColor(ContextCompat.getColor(this@MainActivity, R.color.awalocation_hint_color))
         }
 
         val mSearchList = binding.appBarMain.searchListView

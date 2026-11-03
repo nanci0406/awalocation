@@ -34,7 +34,7 @@ import com.nanci.awalocation.ext.speed
 import com.nanci.awalocation.service.MockServiceHelper
 import com.nanci.awalocation.ui.viewmodel.MockServiceViewModel
 import com.nanci.awalocation.ui.viewmodel.MockViewModel
-import moe.fuqiuluo.xposed.utils.FakeLoc
+import com.nanci.awalocation.xposed.utils.FakeLoc
 
 class MockFragment : Fragment() {
     private var _binding: FragmentMockBinding? = null

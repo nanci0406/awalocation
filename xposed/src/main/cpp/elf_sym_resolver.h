@@ -17,8 +17,8 @@
 // only on the symbol being present in .dynsym — which it is for
 // BitTube::sendObjects and convertToSensorEvent on the ROMs we target.
 
-#ifndef KAIL_ELF_SYM_RESOLVER_H
-#define KAIL_ELF_SYM_RESOLVER_H
+#ifndef AWALOCATION_ELF_SYM_RESOLVER_H
+#define AWALOCATION_ELF_SYM_RESOLVER_H
 
 #include <cstdint>
 #include <cstdio>
@@ -31,9 +31,9 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-#include "kail_log.h"
+#include "awalocation_log.h"
 
-namespace kailsym {
+namespace awalocationsym {
 
 static const char *kTag = "ElfSymResolver";
 
@@ -41,12 +41,12 @@ static const char *kTag = "ElfSymResolver";
 using Ehdr = Elf64_Ehdr;
 using Shdr = Elf64_Shdr;
 using Sym  = Elf64_Sym;
-#define KAIL_ST_TYPE(i) ELF64_ST_TYPE(i)
+#define AWALOCATION_ST_TYPE(i) ELF64_ST_TYPE(i)
 #else
 using Ehdr = Elf32_Ehdr;
 using Shdr = Elf32_Shdr;
 using Sym  = Elf32_Sym;
-#define KAIL_ST_TYPE(i) ELF32_ST_TYPE(i)
+#define AWALOCATION_ST_TYPE(i) ELF32_ST_TYPE(i)
 #endif
 
 // Locate "<base> <path>" for the first executable/readable mapping of a module
@@ -133,7 +133,7 @@ static inline uint64_t symValueFromFile(const char *path, const char *symbol) {
         continue;
       if (syms[s].st_value == 0)
         continue;
-      if (KAIL_ST_TYPE(syms[s].st_info) != STT_FUNC)
+      if (AWALOCATION_ST_TYPE(syms[s].st_info) != STT_FUNC)
         continue;
       if (strcmp(strs + nameOff, symbol) == 0) {
         result = (uint64_t)syms[s].st_value;
@@ -172,6 +172,6 @@ static inline void *resolve(const char *keyword, const char *const *symbols,
   return nullptr;
 }
 
-}  // namespace kailsym
+}  // namespace awalocationsym
 
-#endif  // KAIL_ELF_SYM_RESOLVER_H
+#endif  // AWALOCATION_ELF_SYM_RESOLVER_H

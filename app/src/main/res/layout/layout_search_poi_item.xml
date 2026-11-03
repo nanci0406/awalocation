@@ -18,7 +18,7 @@
         android:layout_marginEnd="12dp"
         android:contentDescription="@null"
         app:srcCompat="@drawable/baseline_location_on_24"
-        app:tint="@color/portal_primary" />
+        app:tint="@color/awalocation_primary" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -33,7 +33,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-            android:textColor="@color/portal_text_color"
+            android:textColor="@color/awalocation_text_color"
             android:textStyle="bold" />
 
         <TextView
@@ -44,7 +44,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-            android:textColor="@color/portal_on_surface_variant" />
+            android:textColor="@color/awalocation_on_surface_variant" />
 
         <TextView
             android:id="@+id/poi_tag"
@@ -54,7 +54,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-            android:textColor="@color/portal_primary" />
+            android:textColor="@color/awalocation_primary" />
     </LinearLayout>
 
     <TextView

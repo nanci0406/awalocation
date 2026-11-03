@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "moe.fuqiuluo.xposed"
+    namespace = "com.nanci.awalocation.xposed"
     compileSdk = 36
     ndkVersion = "26.1.10909125"
 

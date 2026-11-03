@@ -35,7 +35,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
-        android:name=".Portal"
+        android:name=".Awalocation"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -66,6 +66,11 @@
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
             android:value="UzCD3gLYg3M9Ue2749hm1jsHX2DyfMUF" />
+
+        <!-- 高德地图 API Key（申请后替换） -->
+        <meta-data
+            android:name="com.amap.api.v2.apikey"
+            android:value="YOUR_AMAP_KEY" />
 
         <!-- Xposed 模块配置 -->
         <meta-data

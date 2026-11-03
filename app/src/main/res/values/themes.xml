@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/portal_primary</item>
-        <item name="colorOnPrimary">@color/portal_on_primary</item>
-        <item name="colorPrimaryContainer">@color/portal_primary_container</item>
-        <item name="colorOnPrimaryContainer">@color/portal_on_primary_container</item>
-        <item name="colorSecondary">@color/portal_secondary</item>
-        <item name="colorOnSecondary">@color/portal_on_secondary</item>
-        <item name="colorSecondaryContainer">@color/portal_secondary_container</item>
-        <item name="colorOnSecondaryContainer">@color/portal_on_secondary_container</item>
-        <item name="colorSurface">@color/portal_surface</item>
-        <item name="colorOnSurface">@color/portal_on_surface</item>
-        <item name="colorSurfaceVariant">@color/portal_surface_variant</item>
-        <item name="colorOnSurfaceVariant">@color/portal_on_surface_variant</item>
-        <item name="colorOutline">@color/portal_outline</item>
-        <item name="colorOutlineVariant">@color/portal_outline_variant</item>
-        <item name="android:colorBackground">@color/portal_background</item>
-        <item name="android:windowBackground">@color/portal_background</item>
+        <item name="colorPrimary">@color/awalocation_primary</item>
+        <item name="colorOnPrimary">@color/awalocation_on_primary</item>
+        <item name="colorPrimaryContainer">@color/awalocation_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/awalocation_on_primary_container</item>
+        <item name="colorSecondary">@color/awalocation_secondary</item>
+        <item name="colorOnSecondary">@color/awalocation_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/awalocation_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/awalocation_on_secondary_container</item>
+        <item name="colorSurface">@color/awalocation_surface</item>
+        <item name="colorOnSurface">@color/awalocation_on_surface</item>
+        <item name="colorSurfaceVariant">@color/awalocation_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/awalocation_on_surface_variant</item>
+        <item name="colorOutline">@color/awalocation_outline</item>
+        <item name="colorOutlineVariant">@color/awalocation_outline_variant</item>
+        <item name="android:colorBackground">@color/awalocation_background</item>
+        <item name="android:windowBackground">@color/awalocation_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
@@ -27,37 +27,37 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="colorControlHighlight">@color/theme_focused_touch</item>
-        <item name="searchViewStyle">@style/Portal.SearchViewStyle</item>
-        <item name="sliderStyle">@style/Portal.SliderTheme</item>
-        <item name="materialAlertDialogTheme">@style/Portal.MaterialAlertDialog</item>
+        <item name="searchViewStyle">@style/Awalocation.SearchViewStyle</item>
+        <item name="sliderStyle">@style/Awalocation.SliderTheme</item>
+        <item name="materialAlertDialogTheme">@style/Awalocation.MaterialAlertDialog</item>
     </style>
 
-    <style name="Portal.Card" parent="Widget.Material3.CardView.Elevated">
-        <item name="cardBackgroundColor">@color/portal_surface</item>
+    <style name="Awalocation.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">@color/awalocation_surface</item>
         <item name="cardCornerRadius">20dp</item>
         <item name="cardElevation">0dp</item>
         <item name="strokeWidth">1dp</item>
-        <item name="strokeColor">@color/portal_outline_variant</item>
+        <item name="strokeColor">@color/awalocation_outline_variant</item>
         <item name="contentPadding">20dp</item>
         <item name="cardPreventCornerOverlap">false</item>
         <item name="cardUseCompatPadding">false</item>
     </style>
 
-    <style name="Portal.Card.Compact" parent="Portal.Card">
+    <style name="Awalocation.Card.Compact" parent="Awalocation.Card">
         <item name="contentPadding">12dp</item>
         <item name="cardCornerRadius">16dp</item>
     </style>
 
-    <style name="Portal.MapCard" parent="Portal.Card.Compact">
+    <style name="Awalocation.MapCard" parent="Awalocation.Card.Compact">
         <item name="cardElevation">4dp</item>
         <item name="strokeWidth">0dp</item>
         <item name="contentPadding">6dp</item>
     </style>
 
     <!-- 旧样式名保留为别名，未迁移的页面也会使用新视觉。 -->
-    <style name="Portal.GlassCard" parent="Portal.Card" />
+    <style name="Awalocation.GlassCard" parent="Awalocation.Card" />
 
-    <style name="Portal.Button" parent="Widget.Material3.Button">
+    <style name="Awalocation.Button" parent="Widget.Material3.Button">
         <item name="android:textAllCaps">false</item>
         <item name="android:textSize">15sp</item>
         <item name="android:minHeight">48dp</item>
@@ -68,7 +68,7 @@
         <item name="iconPadding">8dp</item>
         <item name="iconSize">20dp</item>
     </style>
-    <style name="Portal.Button.Tonal" parent="Widget.Material3.Button.TonalButton">
+    <style name="Awalocation.Button.Tonal" parent="Widget.Material3.Button.TonalButton">
         <item name="android:textAllCaps">false</item>
         <item name="android:textSize">15sp</item>
         <item name="android:minHeight">48dp</item>
@@ -79,51 +79,51 @@
         <item name="iconPadding">8dp</item>
         <item name="iconSize">20dp</item>
     </style>
-    <style name="Portal.PillButton" parent="Portal.Button" />
-    <style name="Portal.PillButton.Tonal" parent="Portal.Button.Tonal" />
+    <style name="Awalocation.PillButton" parent="Awalocation.Button" />
+    <style name="Awalocation.PillButton.Tonal" parent="Awalocation.Button.Tonal" />
 
-    <style name="Portal.ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
+    <style name="Awalocation.ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
         <item name="android:textSize">20sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/portal_text_color</item>
+        <item name="android:textColor">@color/awalocation_text_color</item>
     </style>
-    <style name="Portal.SectionTitle" parent="TextAppearance.Material3.TitleMedium">
-        <item name="android:textColor">@color/portal_text_color</item>
+    <style name="Awalocation.SectionTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textColor">@color/awalocation_text_color</item>
         <item name="android:textStyle">bold</item>
     </style>
-    <style name="Portal.BodySecondary" parent="TextAppearance.Material3.BodyMedium">
-        <item name="android:textColor">@color/portal_on_surface_variant</item>
+    <style name="Awalocation.BodySecondary" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textColor">@color/awalocation_on_surface_variant</item>
     </style>
-    <style name="Portal.PreferenceTitle" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:textColor">@color/portal_text_color</item>
+    <style name="Awalocation.PreferenceTitle" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">@color/awalocation_text_color</item>
     </style>
-    <style name="Portal.PreferenceSummary" parent="TextAppearance.Material3.BodySmall">
-        <item name="android:textColor">@color/portal_on_surface_variant</item>
+    <style name="Awalocation.PreferenceSummary" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textColor">@color/awalocation_on_surface_variant</item>
         <item name="android:lineSpacingExtra">2dp</item>
     </style>
-    <style name="Portal.PreferenceValue" parent="TextAppearance.Material3.LabelLarge">
-        <item name="android:textColor">@color/portal_primary</item>
+    <style name="Awalocation.PreferenceValue" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textColor">@color/awalocation_primary</item>
     </style>
 
-    <style name="Portal.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
-        <item name="shapeAppearanceCornerLarge">@style/Portal.ShapeAppearance.Dialog</item>
-        <item name="colorSurface">@color/portal_surface</item>
+    <style name="Awalocation.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="shapeAppearanceCornerLarge">@style/Awalocation.ShapeAppearance.Dialog</item>
+        <item name="colorSurface">@color/awalocation_surface</item>
     </style>
-    <style name="Portal.ShapeAppearance.Dialog" parent="ShapeAppearance.Material3.Corner.Large">
+    <style name="Awalocation.ShapeAppearance.Dialog" parent="ShapeAppearance.Material3.Corner.Large">
         <item name="cornerSize">24dp</item>
     </style>
-    <style name="Portal.ShapeAppearance.NavItem" parent="ShapeAppearance.Material3.Corner.Full">
+    <style name="Awalocation.ShapeAppearance.NavItem" parent="ShapeAppearance.Material3.Corner.Full">
         <item name="cornerSize">16dp</item>
     </style>
-    <style name="Portal.SliderTheme" parent="Widget.Material3.Slider">
+    <style name="Awalocation.SliderTheme" parent="Widget.Material3.Slider">
         <item name="labelBehavior">gone</item>
     </style>
-    <style name="Portal.SearchViewStyle" parent="Widget.AppCompat.SearchView" />
-    <style name="AppTheme.Portal.ToolBarOverlay" parent="ThemeOverlay.Material3.Light">
+    <style name="Awalocation.SearchViewStyle" parent="Widget.AppCompat.SearchView" />
+    <style name="AppTheme.Awalocation.ToolBarOverlay" parent="ThemeOverlay.Material3.Light">
         <item name="colorControlNormal">@color/theme_appbar_icon_color</item>
         <item name="android:textColorPrimary">@color/theme_appbar_text_color</item>
     </style>
-    <style name="AppTheme.Portal.PopupTheme" parent="ThemeOverlay.Material3.Light" />
+    <style name="AppTheme.Awalocation.PopupTheme" parent="ThemeOverlay.Material3.Light" />
 
     <!-- 下列主题供悬浮窗等旧组件使用。 -->
     <style name="AppTheme.Dark" parent="Theme.AppCompat.NoActionBar">
@@ -158,10 +158,10 @@
         <item name="cornerSize">14dp</item>
     </style>
     <style name="CardViewStyle.Dark" parent="CardView">
-        <item name="cardBackgroundColor">@color/portal_surface</item>
+        <item name="cardBackgroundColor">@color/awalocation_surface</item>
     </style>
     <style name="CardViewStyle.Light" parent="CardView">
-        <item name="cardBackgroundColor">@color/portal_surface</item>
+        <item name="cardBackgroundColor">@color/awalocation_surface</item>
     </style>
     <style name="AppTheme.StatusBar" parent="AppTheme">
         <item name="android:statusBarColor">@android:color/transparent</item>

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/portal_background"
+    android:background="@color/awalocation_background"
     android:clipChildren="false"
     android:clipToPadding="false"
     tools:context=".ui.mock.MockFragment">
@@ -20,15 +20,15 @@
         <!-- 目标位置概览卡片 -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/mock_location_card"
-            style="@style/Portal.Card"
+            style="@style/Awalocation.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:foreground="?attr/selectableItemBackground"
-            app:cardBackgroundColor="@color/portal_surface"
+            app:cardBackgroundColor="@color/awalocation_surface"
             app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:contentPadding="18dp"
-            app:strokeColor="@color/portal_outline_variant"
+            app:strokeColor="@color/awalocation_outline_variant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -49,7 +49,7 @@
                         android:contentDescription="@null"
                         android:padding="11dp"
                         app:srcCompat="@drawable/baseline_location_pin_24"
-                        app:tint="@color/portal_primary" />
+                        app:tint="@color/awalocation_primary" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -62,14 +62,14 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/target_location"
-                            android:textAppearance="@style/Portal.SectionTitle" />
+                            android:textAppearance="@style/Awalocation.SectionTitle" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="点击卡片可在地图上重新定位"
-                            android:textAppearance="@style/Portal.BodySecondary"
+                            android:textAppearance="@style/Awalocation.BodySecondary"
                             android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -83,7 +83,7 @@
                     android:maxLines="1"
                     android:text="@string/none"
                     android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
-                    android:textColor="@color/portal_text_color"
+                    android:textColor="@color/awalocation_text_color"
                     android:textStyle="bold" />
 
                 <TextView
@@ -94,7 +94,7 @@
                     android:ellipsize="end"
                     android:maxLines="2"
                     android:text="@string/none_none"
-                    android:textAppearance="@style/Portal.BodySecondary" />
+                    android:textAppearance="@style/Awalocation.BodySecondary" />
 
                 <TextView
                     android:id="@+id/mock_location_latlon"
@@ -109,7 +109,7 @@
                     android:paddingBottom="5dp"
                     android:text="@string/default_latlon"
                     android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-                    android:textColor="@color/portal_on_surface_variant" />
+                    android:textColor="@color/awalocation_on_surface_variant" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -120,7 +120,7 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/switch_mock"
-                        style="@style/Portal.Button"
+                        style="@style/Awalocation.Button"
                         android:layout_width="0dp"
                         android:layout_height="48dp"
                         android:layout_weight="1"
@@ -165,14 +165,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/history_location"
-                android:textAppearance="@style/Portal.SectionTitle" />
+                android:textAppearance="@style/Awalocation.SectionTitle" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="左右滑动删除"
                 android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-                android:textColor="@color/portal_hint_color" />
+                android:textColor="@color/awalocation_hint_color" />
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
@@ -193,11 +193,11 @@
         android:layout_margin="20dp"
         android:contentDescription="@string/follow_location"
         android:visibility="gone"
-        app:backgroundTint="@color/portal_primary"
+        app:backgroundTint="@color/awalocation_primary"
         app:borderWidth="0dp"
         app:elevation="4dp"
         app:fabSize="normal"
         app:srcCompat="@drawable/sharp_location_off_24"
-        app:tint="@color/portal_on_primary" />
+        app:tint="@color/awalocation_on_primary" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

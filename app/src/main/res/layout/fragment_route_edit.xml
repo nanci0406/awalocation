@@ -22,11 +22,11 @@
         android:layout_gravity="top|end"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
-        app:cardBackgroundColor="@color/portal_surface"
+        app:cardBackgroundColor="@color/awalocation_surface"
         app:cardCornerRadius="20dp"
         app:cardElevation="3dp"
         app:contentPadding="2dp"
-        app:strokeColor="@color/portal_outline_variant"
+        app:strokeColor="@color/awalocation_outline_variant"
         app:strokeWidth="1dp">
 
         <RadioGroup
@@ -79,12 +79,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:contentDescription="@string/quick_actions"
-            app:backgroundTint="@color/portal_primary"
+            app:backgroundTint="@color/awalocation_primary"
             app:borderWidth="0dp"
             app:elevation="4dp"
             app:fabSize="normal"
             app:srcCompat="@drawable/baseline_keyboard_arrow_up_24"
-            app:tint="@color/portal_on_primary" />
+            app:tint="@color/awalocation_on_primary" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab_start"
@@ -93,12 +93,12 @@
             android:layout_marginStart="10dp"
             android:contentDescription="添加路径点"
             android:visibility="gone"
-            app:backgroundTint="@color/portal_surface"
+            app:backgroundTint="@color/awalocation_surface"
             app:borderWidth="0dp"
             app:elevation="3dp"
             app:fabSize="mini"
             app:srcCompat="@drawable/baseline_add_location_24"
-            app:tint="@color/portal_primary" />
+            app:tint="@color/awalocation_primary" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab_rollback"
@@ -107,12 +107,12 @@
             android:layout_marginStart="6dp"
             android:contentDescription="撤销上一节点"
             android:visibility="gone"
-            app:backgroundTint="@color/portal_surface"
+            app:backgroundTint="@color/awalocation_surface"
             app:borderWidth="0dp"
             app:elevation="3dp"
             app:fabSize="mini"
             app:srcCompat="@drawable/baseline_rollback_24"
-            app:tint="@color/portal_primary" />
+            app:tint="@color/awalocation_primary" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab_complete"
@@ -121,12 +121,12 @@
             android:layout_marginStart="6dp"
             android:contentDescription="完成路线"
             android:visibility="gone"
-            app:backgroundTint="@color/portal_surface"
+            app:backgroundTint="@color/awalocation_surface"
             app:borderWidth="0dp"
             app:elevation="3dp"
             app:fabSize="mini"
             app:srcCompat="@drawable/baseline_complete_24"
-            app:tint="@color/portal_primary" />
+            app:tint="@color/awalocation_primary" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab_my_location"
@@ -135,12 +135,12 @@
             android:layout_marginStart="6dp"
             android:contentDescription="@string/follow_location"
             android:visibility="gone"
-            app:backgroundTint="@color/portal_surface"
+            app:backgroundTint="@color/awalocation_surface"
             app:borderWidth="0dp"
             app:elevation="3dp"
             app:fabSize="mini"
             app:srcCompat="@drawable/baseline_my_location_24"
-            app:tint="@color/portal_primary" />
+            app:tint="@color/awalocation_primary" />
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

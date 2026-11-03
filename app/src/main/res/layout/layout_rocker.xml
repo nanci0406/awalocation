@@ -22,14 +22,14 @@
         android:id="@+id/rocker_card"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/portal_surface"
+        app:cardBackgroundColor="@color/awalocation_surface"
         app:cardCornerRadius="24dp"
         app:cardElevation="6dp"
         app:cardMaxElevation="8dp"
         app:cardPreventCornerOverlap="false"
         app:cardUseCompatPadding="false"
         app:contentPadding="3dp"
-        app:strokeColor="@color/portal_outline_variant"
+        app:strokeColor="@color/awalocation_outline_variant"
         app:strokeWidth="1dp">
 
         <LinearLayout
@@ -55,7 +55,7 @@
                     android:contentDescription="移动或收起摇杆"
                     android:padding="8dp"
                     android:src="@drawable/baseline_adjust_24"
-                    app:tint="@color/portal_on_surface_variant" />
+                    app:tint="@color/awalocation_on_surface_variant" />
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/auto"
@@ -65,7 +65,7 @@
                     android:contentDescription="自动移动选项"
                     android:padding="8dp"
                     android:src="@drawable/baseline_robot_24"
-                    app:tint="@color/portal_primary" />
+                    app:tint="@color/awalocation_primary" />
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/expand_menu"
@@ -75,7 +75,7 @@
                     android:contentDescription="摇杆设置"
                     android:padding="8dp"
                     android:src="@drawable/baseline_control_camera_24"
-                    app:tint="@color/portal_on_surface_variant" />
+                    app:tint="@color/awalocation_on_surface_variant" />
             </LinearLayout>
 
             <!-- 自动控制子行：展开时受 auto 按钮控制，收起时并入单行横向胶囊 -->
@@ -95,7 +95,7 @@
                     android:contentDescription="播放或暂停路线"
                     android:padding="8dp"
                     android:src="@drawable/baseline_play_24"
-                    app:tint="@color/portal_primary" />
+                    app:tint="@color/awalocation_primary" />
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/auto_status"
@@ -105,7 +105,7 @@
                     android:contentDescription="自动移动状态"
                     android:padding="8dp"
                     android:src="@drawable/baseline_settings_24"
-                    app:tint="@color/portal_on_surface_variant" />
+                    app:tint="@color/awalocation_on_surface_variant" />
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/auto_lock"
@@ -115,7 +115,7 @@
                     android:contentDescription="锁定自动移动"
                     android:padding="8dp"
                     android:src="@drawable/baseline_manual_24"
-                    app:tint="@color/portal_on_surface_variant" />
+                    app:tint="@color/awalocation_on_surface_variant" />
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

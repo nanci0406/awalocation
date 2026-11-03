@@ -20,7 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.nanci.awalocation.R
 import com.nanci.awalocation.databinding.FragmentSettingsBinding
-import moe.fuqiuluo.xposed.utils.FakeLoc
+import com.nanci.awalocation.xposed.utils.FakeLoc
 import com.nanci.awalocation.ext.accuracy
 import com.nanci.awalocation.ext.altitude
 import com.nanci.awalocation.ext.debug

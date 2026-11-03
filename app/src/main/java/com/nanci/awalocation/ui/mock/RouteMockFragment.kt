@@ -37,7 +37,7 @@ import com.nanci.awalocation.ext.speed
 import com.nanci.awalocation.service.MockServiceHelper
 import com.nanci.awalocation.ui.viewmodel.HomeViewModel
 import com.nanci.awalocation.ui.viewmodel.MockServiceViewModel
-import moe.fuqiuluo.xposed.utils.FakeLoc
+import com.nanci.awalocation.xposed.utils.FakeLoc
 import androidx.navigation.findNavController
 
 class RouteMockFragment : Fragment() {

@@ -16,16 +16,16 @@
 #include <unistd.h>
 
 #include "sensor_simulator.h"
-#include "kail_log.h"
+#include "awalocation_log.h"
 #include "elf_sym_resolver.h"
 #include "sensor_hook.h"
 
-#define LOG_TAG "PortalNativeSensor"
+#define LOG_TAG "AwalocationNativeSensor"
 #define ALOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define ALOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-static const char *kHookTag = "NativeSensorHook.portal";
+static const char *kHookTag = "NativeSensorHook.awalocation";
 
 #define SENSOR_TYPE_ACCELEROMETER 1
 #define SENSOR_TYPE_GYROSCOPE 4
@@ -359,7 +359,7 @@ static void install_send_objects_hook() {
     const char* libs[] = {"libsensor.so", "libsensorservice.so", "libgui.so"};
     void* addr = nullptr;
     for (const char* lib : libs) {
-        addr = kailsym::resolve(lib, kSendObjectsSymbols,
+        addr = awalocationsym::resolve(lib, kSendObjectsSymbols,
                                 (int)(sizeof(kSendObjectsSymbols) / sizeof(kSendObjectsSymbols[0])),
                                 &send_objects_offset);
         if (addr) break;
@@ -383,7 +383,7 @@ static void install_convert_to_sensor_event_hook() {
     std::lock_guard<std::mutex> lock(hook_install_mutex);
     if (convert_to_sensor_event_hook_installed) return;
 
-    void* addr = kailsym::resolve("libsensorservice.so", kConvertSymbols,
+    void* addr = awalocationsym::resolve("libsensorservice.so", kConvertSymbols,
                                   (int)(sizeof(kConvertSymbols) / sizeof(kConvertSymbols[0])),
                                   &convert_to_sensor_event_offset);
     if (!addr) {
@@ -410,12 +410,12 @@ void doSensorHook() {
 }
 
 // ============================================================
-// JNI Exports for moe.fuqiuluo.dobby.Dobby
+// JNI Exports for com.nanci.awalocation.dobby.Dobby
 // ============================================================
 extern "C" {
 
 JNIEXPORT void JNICALL
-Java_moe_fuqiuluo_dobby_Dobby_setStatus(JNIEnv* env, jobject thiz, jboolean status) {
+Java_com_nanci_awalocation_dobby_Dobby_setStatus(JNIEnv* env, jobject thiz, jboolean status) {
     bool s = (status != JNI_FALSE);
     isMocking.store(s ? 1 : 0, std::memory_order_release);
     step_sim_enabled.store(s ? 1 : 0, std::memory_order_release);
@@ -424,7 +424,7 @@ Java_moe_fuqiuluo_dobby_Dobby_setStatus(JNIEnv* env, jobject thiz, jboolean stat
 }
 
 JNIEXPORT void JNICALL
-Java_moe_fuqiuluo_dobby_Dobby_nativeInit(
+Java_com_nanci_awalocation_dobby_Dobby_nativeInit(
     JNIEnv* env, jclass clazz, jfloat spm, jint mode, jint scheme, jboolean enable) {
     if (spm > 0.0f) current_spm.store(spm, std::memory_order_release);
     updateSensorSimulatorParams(spm, mode, scheme, enable != JNI_FALSE);
@@ -434,14 +434,14 @@ Java_moe_fuqiuluo_dobby_Dobby_nativeInit(
 }
 
 JNIEXPORT void JNICALL
-Java_moe_fuqiuluo_dobby_Dobby_nativeSetStepSimEnabled(
+Java_com_nanci_awalocation_dobby_Dobby_nativeSetStepSimEnabled(
     JNIEnv* env, jclass clazz, jboolean enabled) {
     step_sim_enabled.store((enabled != JNI_FALSE) ? 1 : 0, std::memory_order_release);
     KLOGI(kHookTag, "Dobby.nativeSetStepSimEnabled: enabled=%d", enabled ? 1 : 0);
 }
 
 JNIEXPORT void JNICALL
-Java_moe_fuqiuluo_dobby_Dobby_nativeSetRouteSimulation(
+Java_com_nanci_awalocation_dobby_Dobby_nativeSetRouteSimulation(
     JNIEnv* env, jclass clazz, jboolean active, jfloat spm, jint mode) {
     bool isActive = (active != JNI_FALSE);
     if (isActive) {
@@ -459,26 +459,26 @@ Java_moe_fuqiuluo_dobby_Dobby_nativeSetRouteSimulation(
 }
 
 JNIEXPORT void JNICALL
-Java_moe_fuqiuluo_dobby_Dobby_nativeSetGaitParams(
+Java_com_nanci_awalocation_dobby_Dobby_nativeSetGaitParams(
     JNIEnv* env, jclass clazz, jfloat spm, jint mode, jint scheme, jboolean enable) {
     if (spm > 0.0f) current_spm.store(spm, std::memory_order_release);
     updateSensorSimulatorParams(spm, mode, scheme, enable != JNI_FALSE);
 }
 
 JNIEXPORT void JNICALL
-Java_moe_fuqiuluo_dobby_Dobby_nativeSetMocking(
+Java_com_nanci_awalocation_dobby_Dobby_nativeSetMocking(
     JNIEnv* env, jclass clazz, jint mocking) {
     isMocking.store((int)mocking, std::memory_order_release);
 }
 
 JNIEXPORT void JNICALL
-Java_moe_fuqiuluo_dobby_Dobby_nativeSetStepSensorHandles(
+Java_com_nanci_awalocation_dobby_Dobby_nativeSetStepSensorHandles(
     JNIEnv* env, jclass clazz, jint counterHandle, jint detectorHandle) {
     setStepSensorHandles((int)counterHandle, (int)detectorHandle);
 }
 
 JNIEXPORT void JNICALL
-Java_moe_fuqiuluo_dobby_Dobby_nativeReset(JNIEnv* env, jclass clazz) {
+Java_com_nanci_awalocation_dobby_Dobby_nativeReset(JNIEnv* env, jclass clazz) {
     step_sim_enabled.store(0, std::memory_order_release);
     route_simulation_active.store(false, std::memory_order_release);
     isMocking.store(0, std::memory_order_release);
@@ -491,33 +491,33 @@ Java_moe_fuqiuluo_dobby_Dobby_nativeReset(JNIEnv* env, jclass clazz) {
 }
 
 JNIEXPORT jboolean JNICALL
-Java_moe_fuqiuluo_dobby_Dobby_nativeInitHook(JNIEnv* env, jclass clazz) {
+Java_com_nanci_awalocation_dobby_Dobby_nativeInitHook(JNIEnv* env, jclass clazz) {
     doSensorHook();
     return (send_objects_hook_installed || convert_to_sensor_event_hook_installed) ? JNI_TRUE : JNI_FALSE;
 }
 
 // Compatibility exports
 JNIEXPORT void JNICALL
-Java_com_kail_locationxposed_xposed_sensor_NativeSensorHook_nativeInit(
+Java_com_nanci_awalocation_xposed_sensor_NativeSensorHook_nativeInit(
     JNIEnv* env, jclass clazz, jfloat spm, jint mode, jint scheme, jboolean enable) {
-    Java_moe_fuqiuluo_dobby_Dobby_nativeInit(env, clazz, spm, mode, scheme, enable);
+    Java_com_nanci_awalocation_dobby_Dobby_nativeInit(env, clazz, spm, mode, scheme, enable);
 }
 
 JNIEXPORT void JNICALL
-Java_com_kail_locationxposed_xposed_sensor_NativeSensorHook_nativeSetStepSimEnabled(
+Java_com_nanci_awalocation_xposed_sensor_NativeSensorHook_nativeSetStepSimEnabled(
     JNIEnv* env, jclass clazz, jboolean enabled) {
-    Java_moe_fuqiuluo_dobby_Dobby_nativeSetStepSimEnabled(env, clazz, enabled);
+    Java_com_nanci_awalocation_dobby_Dobby_nativeSetStepSimEnabled(env, clazz, enabled);
 }
 
 JNIEXPORT void JNICALL
-Java_com_kail_locationxposed_xposed_sensor_NativeSensorHook_nativeSetRouteSimulation(
+Java_com_nanci_awalocation_xposed_sensor_NativeSensorHook_nativeSetRouteSimulation(
     JNIEnv* env, jclass clazz, jboolean active, jfloat spm, jint mode) {
-    Java_moe_fuqiuluo_dobby_Dobby_nativeSetRouteSimulation(env, clazz, active, spm, mode);
+    Java_com_nanci_awalocation_dobby_Dobby_nativeSetRouteSimulation(env, clazz, active, spm, mode);
 }
 
 JNIEXPORT void JNICALL
-Java_com_kail_locationxposed_xposed_sensor_NativeSensorHook_nativeReset(JNIEnv* env, jclass clazz) {
-    Java_moe_fuqiuluo_dobby_Dobby_nativeReset(env, clazz);
+Java_com_nanci_awalocation_xposed_sensor_NativeSensorHook_nativeReset(JNIEnv* env, jclass clazz) {
+    Java_com_nanci_awalocation_dobby_Dobby_nativeReset(env, clazz);
 }
 
 }

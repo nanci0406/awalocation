@@ -75,7 +75,7 @@ flowchart TD
     subgraph SYSTEM_SERVER ["system_server (Android Framework)"]
         C --> D["LocationServiceHook (Xposed)"]
         D --> E["RemoteCommandHandler"]
-        E -->|"按需加载 SO 库"| F["libportal.so / Dobby Engine"]
+        E -->|"按需加载 SO 库"| F["libawalocation.so / Dobby Engine"]
         
         subgraph SENSOR_HOOK ["Native Sensor Hooking"]
             F -->|"Inline Hook"| G["BitTube::sendObjects (libsensor.so)"]
@@ -175,7 +175,7 @@ chmod +x gradlew
 ## 🤝 鸣谢与参考
 
 - [Portal](https://github.com/fuqiuluo/Portal) by @fuqiuluo
-- [kail_location](https://github.com/noellegazelle6/kail_location) by @noellegazelle6
+- [awalocation_location](https://github.com/noellegazelle6/awalocation_location) by @noellegazelle6
 - [Dobby](https://github.com/jmpews/Dobby) by @jmpews
 - [LSPosed Framework](https://github.com/LSPosed/LSPosed)
 

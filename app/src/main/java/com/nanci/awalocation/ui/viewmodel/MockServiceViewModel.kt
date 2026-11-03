@@ -21,7 +21,7 @@ import com.nanci.awalocation.service.MockServiceHelper
 import com.nanci.awalocation.ui.mock.HistoricalLocation
 import com.nanci.awalocation.ui.mock.HistoricalRoute
 import com.nanci.awalocation.ui.mock.Rocker
-import moe.fuqiuluo.xposed.utils.FakeLoc
+import com.nanci.awalocation.xposed.utils.FakeLoc
 import net.sf.geographiclib.Geodesic
 
 class MockServiceViewModel : ViewModel() {

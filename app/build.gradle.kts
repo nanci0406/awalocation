@@ -130,7 +130,7 @@ android {
 }
 
 // AGP 9 已移除 android.applicationVariants，改用 androidComponents 自定义 APK 文件名。
-// flavor: app -> all, arm64 -> arm64, x64 -> x86_64，输出形如 Portal-v<versionName>-<abi>.apk
+// flavor: app -> all, arm64 -> arm64, x64 -> x86_64，输出形如 Awalocation-v<versionName>-<abi>.apk
 androidComponents {
     onVariants { variant ->
         val abiName = when (val flavor = variant.flavorName.orEmpty()) {
@@ -196,6 +196,9 @@ dependencies {
     implementation(libs.kotlin.reflect)
 
     implementation(libs.bugly)
+
+    // 高德地图 SDK（3D地图 + 定位 + 检索）
+    implementation("com.amap.api:3dmap-location-search:latest.integration")
 
     implementation(libs.geotools)
     implementation(fileTree("libs") {

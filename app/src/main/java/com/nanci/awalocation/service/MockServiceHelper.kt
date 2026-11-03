@@ -22,7 +22,6 @@ import com.nanci.awalocation.ext.enableRequestGeofence
 import com.nanci.awalocation.ext.enableStepMock
 import com.nanci.awalocation.ext.minSatelliteCount
 import com.nanci.awalocation.ext.needDowngradeToCdma
-import com.nanci.awalocation.ext.needOpenSELinux
 import com.nanci.awalocation.ext.speed
 import com.nanci.awalocation.ext.reportDuration
 import com.nanci.awalocation.ext.loopBroadcastlocation
@@ -199,12 +198,9 @@ object MockServiceHelper {
         if (!::randomKey.isInitialized) {
             return false
         }
-        runCatching {
-            if (Awalocation.appContext.needOpenSELinux) {
-                ShellUtils.setEnforceMode(false)
-            }
-        }
-        runCatching { Awalocation.appContext }.getOrNull()?.let { loadAwalocationLibrary(it) }
+        // 普通位置/路线模拟只走 Java 层 Location 注入。
+        // native 传感器 Hook 由 startStepMock() 按需加载，避免启动模拟时
+        // 无条件把 libawalocation.so 注入 system_server。
         val rely = Bundle()
         rely.putString("command_id", "start")
         rely.putDouble("speed", speed)

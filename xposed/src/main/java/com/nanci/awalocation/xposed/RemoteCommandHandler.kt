@@ -113,25 +113,14 @@ object RemoteCommandHandler {
                 val altitude = rely.getDouble("altitude", FakeLoc.altitude)
                 val accuracy = rely.getFloat("accuracy", FakeLoc.accuracy)
 
-                FakeLoc.enable = true
-                if (FakeLoc.enableMockStep) {
-                    ensureNativeLibraryLoaded()
-                }
-                if (Dobby.isLoaded) {
-                    Dobby.setStatus(true)
-                    Dobby.setMocking(true)
-                    if (FakeLoc.enableMockStep) {
-                        val spm = if (FakeLoc.stepCadence > 0f) FakeLoc.stepCadence else (FakeLoc.speed * 35.0 + 70.0).toFloat().coerceIn(60f, 220f)
-                        Dobby.init(spm, mode = 0, scheme = 0, enabled = true)
-                        Dobby.setRouteSimulation(true, spm, mode = 0)
-                        Dobby.setStepSimEnabled(true)
-                    }
-                }
-
                 FakeLoc.speed = speed
                 FakeLoc.altitude = altitude
                 FakeLoc.accuracy = accuracy
+                FakeLoc.enable = true
 
+                // 位置模拟不碰 native 传感器 Hook。步频/步态模拟由
+                // start_step_mock 单独启动，避免启动模拟时把 Dobby 和
+                // SensorService Hook 一起拉进 system_server。
                 return true
             }
             "stop" -> {

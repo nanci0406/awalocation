@@ -289,4 +289,10 @@ var Context.loopBroadcastlocation: Boolean
         FakeLoc.loopBroadcastLocation = value
     }
 
+var Context.routeLoop: Boolean
+    get() = sharedPrefs.getBoolean("routeLoop", false)
+    set(value) = sharedPrefs.edit {
+        putBoolean("routeLoop", value)
+    }
+
 

@@ -32,6 +32,7 @@ import com.nanci.awalocation.ext.accuracy
 import com.nanci.awalocation.ext.altitude
 import com.nanci.awalocation.ext.drawOverOtherAppsEnabled
 import com.nanci.awalocation.ext.getHistoricalRoutesList
+import com.nanci.awalocation.ext.routeLoop
 import com.nanci.awalocation.ext.saveHistoricalRoutesList
 import com.nanci.awalocation.ext.selectRoute
 import com.nanci.awalocation.ext.speed
@@ -141,6 +142,12 @@ class RouteMockFragment : Fragment() {
             binding.mockRouteName.text = it.name
             mockServiceViewModel.selectedRoute = it
             mockServiceViewModel.routeStage = 0
+        }
+
+        binding.routeLoop.isChecked = requireContext().routeLoop
+        binding.routeLoop.setOnCheckedChangeListener { _, isChecked ->
+            requireContext().routeLoop = isChecked
+            showToast(if (isChecked) "已开启路线循环" else "已关闭路线循环")
         }
 
 
@@ -367,6 +374,11 @@ class RouteMockFragment : Fragment() {
                         showToast("模拟服务停止失败")
                         return@withContext false
                     }
+                }
+                if (isClosed) {
+                    mockServiceViewModel.rocker.autoStatus = false
+                    mockServiceViewModel.routeMockCoroutine.pause()
+                    mockServiceViewModel.routeStage = 0
                 }
                 if (isClosed && mockServiceViewModel.rocker.isStart) {
                     binding.rocker.isClickable = false

@@ -78,6 +78,7 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
         val autoView = root.findViewById<AppCompatImageView>(R.id.auto)
         val expandMenuView = root.findViewById<AppCompatImageView>(R.id.expand_menu)
         val autoCard = root.findViewById<View>(R.id.auto_card)
+        val dragHandle = root.findViewById<View>(R.id.drag_handle)
         val moveView = root.findViewById<View>(R.id.move)
         val autoPlayView = root.findViewById<AppCompatImageView>(R.id.auto_play)
         val autoLockView = root.findViewById<AppCompatImageView>(R.id.auto_lock)
@@ -93,7 +94,8 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
             autoCard.visibility = if (autoCardVisible) View.VISIBLE else View.GONE
         }
 
-        // move 按钮支持点击收起/展开，也支持拖动悬浮窗
+        // 顶部把手只负责拖动，move 按钮保留收起/展开功能
+        attachDrag(dragHandle)
         attachDraggableClick(moveView) {
             isHide = !isHide
             switchHide(rockerView, autoView, expandMenuView)
@@ -123,6 +125,10 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
      * 手指滑动超过阈值时拖拽悬浮窗，未滑动时触发点击。
      */
     private fun attachDraggableClick(view: View, onClick: () -> Unit) {
+        attachDrag(view, onClick)
+    }
+
+    private fun attachDrag(view: View, onClick: (() -> Unit)? = null) {
         var downX = 0f
         var downY = 0f
         var isDragging = false
@@ -135,7 +141,6 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
                     startX = downX.toInt()
                     startY = downY.toInt()
                     isDragging = false
-                    savePosition()
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -150,21 +155,32 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
                     startX = currentX.toInt()
                     startY = currentY.toInt()
 
-                    layoutParams.x += movedX
-                    layoutParams.y += movedY
-                    windowManager.updateViewLayout(root, layoutParams)
+                    moveWindowTo(layoutParams.x + movedX, layoutParams.y + movedY)
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!isDragging) {
-                        onClick()
+                        onClick?.invoke()
                     }
+                    savePosition()
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
                     savePosition()
                     true
                 }
                 else -> false
             }
         }
+    }
+
+    private fun moveWindowTo(x: Int, y: Int) {
+        val metrics = activity.resources.displayMetrics
+        val maxX = (metrics.widthPixels - root.width).coerceAtLeast(0)
+        val maxY = (metrics.heightPixels - root.height).coerceAtLeast(0)
+        layoutParams.x = x.coerceIn(0, maxX)
+        layoutParams.y = y.coerceIn(0, maxY)
+        windowManager.updateViewLayout(root, layoutParams)
     }
 
     private fun playAuto(rockerView: RockerView) {
@@ -207,6 +223,7 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
     fun show() {
         windowManager.addView(root, layoutParams)
         isStart = true
+        root.post { moveWindowTo(layoutParams.x, layoutParams.y) }
     }
 
     fun hide() {
@@ -270,9 +287,7 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
                 val movedY = nowY - startY
                 startX = nowX
                 startY = nowY
-                layoutParams.x += movedX
-                layoutParams.y += movedY
-                windowManager.updateViewLayout(v, layoutParams)
+                moveWindowTo(layoutParams.x + movedX, layoutParams.y + movedY)
             }
             MotionEvent.ACTION_UP -> {
                 savePosition()

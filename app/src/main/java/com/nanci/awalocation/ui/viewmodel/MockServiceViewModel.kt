@@ -16,6 +16,7 @@ import com.nanci.awalocation.android.coro.CoroutineRouteMock
 import com.nanci.awalocation.ext.accuracy
 import com.nanci.awalocation.ext.altitude
 import com.nanci.awalocation.ext.reportDuration
+import com.nanci.awalocation.ext.routeLoop
 import com.nanci.awalocation.ext.speed
 import com.nanci.awalocation.service.MockServiceHelper
 import com.nanci.awalocation.ui.mock.HistoricalLocation
@@ -159,6 +160,11 @@ class MockServiceViewModel : ViewModel() {
 
                     // 检查是否已完成所有阶段
                     if (routeStage >= route.route.size) {
+                        if (appContext.routeLoop) {
+                            // 循环模式：回到起点继续跑，直到用户手动停止。
+                            routeStage = 0
+                            continue@routeLoop
+                        }
                         routeMockCoroutine.pause()
                         rocker.autoStatus = false
                         // 重设阶段，保持任务存活，下一次自动播放可以重新开始

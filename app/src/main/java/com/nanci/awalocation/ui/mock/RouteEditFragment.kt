@@ -24,6 +24,7 @@ import com.alibaba.fastjson2.JSON
 import com.alibaba.fastjson2.JSONObject
 import com.amap.api.maps.AMap
 import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.PolylineOptions
 import com.amap.api.services.core.LatLonPoint
 import com.amap.api.services.geocoder.GeocodeSearch
@@ -35,6 +36,8 @@ import com.nanci.awalocation.amap.MapSelection
 import com.nanci.awalocation.amap.animateTo
 import com.nanci.awalocation.amap.setupMap
 import com.nanci.awalocation.amap.showSelection
+import com.nanci.awalocation.amap.zoomIn
+import com.nanci.awalocation.amap.zoomOut
 import com.nanci.awalocation.databinding.FragmentRouteEditBinding
 import com.nanci.awalocation.ext.gcj02
 import com.nanci.awalocation.ext.getHistoricalRoutesList
@@ -54,7 +57,7 @@ class RouteEditFragment : Fragment() {
 
     private var mPoints: ArrayList<Pair<Double, Double>> = arrayListOf()
     private var isDrawing = false
-    private var lastPoint: Pair<Double, Double>? = null
+    private var hasCenteredOnLocation = false
 
 
     override fun onCreateView(
@@ -64,6 +67,8 @@ class RouteEditFragment : Fragment() {
     ): View {
         _binding = FragmentRouteEditBinding.inflate(inflater, container, false)
         binding.mapView.onCreate(savedInstanceState)
+        hasCenteredOnLocation = false
+        isDrawing = false
 
         with(mapViewModel) {
             isExists = true
@@ -105,6 +110,11 @@ class RouteEditFragment : Fragment() {
             setOnMyLocationChangeListener { location ->
                 if (location == null) return@setOnMyLocationChangeListener
                 mapViewModel.currentLocation = location.wgs84
+                mapViewModel.currentLocationGcj = LatLng(location.latitude, location.longitude)
+                if (!hasCenteredOnLocation) {
+                    hasCenteredOnLocation = true
+                    animateTo(LatLng(location.latitude, location.longitude), 17f)
+                }
             }
 
             binding.mapTypeGroup.check(
@@ -203,6 +213,17 @@ class RouteEditFragment : Fragment() {
             }
         }
 
+        binding.mapView.post {
+            mapViewModel.currentLocation?.let { cached ->
+                hasCenteredOnLocation = true
+                mapViewModel.amap.moveCamera(
+                    CameraUpdateFactory.newLatLngZoom(cached.gcj02, 17f)
+                )
+            }
+        }
+        binding.zoomIn.setOnClickListener { mapViewModel.amap.zoomIn() }
+        binding.zoomOut.setOnClickListener { mapViewModel.amap.zoomOut() }
+
         binding.mapTypeGroup.setOnCheckedChangeListener { _, checkedId ->
             val mapType = when (checkedId) {
                 com.nanci.awalocation.R.id.map_type_normal -> AMap.MAP_TYPE_NORMAL
@@ -216,40 +237,28 @@ class RouteEditFragment : Fragment() {
             context?.mapType = mapType
         }
 
-        mapViewModel.amap.setOnMapTouchListener { event ->
-            if (isDrawing) {
-                // 用触摸点而不是地图中心作为路径点，否则绘制出的路线会始终挤在屏幕中心。
-                val currentPoint = mapViewModel.amap.projection
-                    .fromScreenLocation(Point(event.x.toInt(), event.y.toInt()))
-                    .wgs84
-
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> { // 新增 DOWN 事件处理
-                        if (mPoints.size <= 0) {
-                            mPoints.add(currentPoint)
-                        }
-                        lastPoint = currentPoint
-                    }
-
-                    MotionEvent.ACTION_MOVE -> {
-                        if (lastPoint == null) {
-                            lastPoint = currentPoint
-                        }
-                        lastPoint?.let { lp -> drawLine(lp, currentPoint) }
-                    }
-
-                    MotionEvent.ACTION_UP -> {
-                        mPoints.add(currentPoint)
-                        lastPoint = null // 关键修改：重置起点
-                    }
+        binding.routeDrawOverlay.setOnTouchListener { _, event ->
+            if (!isDrawing) return@setOnTouchListener false
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN,
+                MotionEvent.ACTION_MOVE -> {
+                    moveRouteCursor(event.x, event.y)
+                    true
                 }
+
+                MotionEvent.ACTION_UP -> {
+                    moveRouteCursor(event.x, event.y)
+                    addRoutePointAtCursor()
+                    true
+                }
+
+                MotionEvent.ACTION_CANCEL -> true
+                else -> false
             }
         }
 
         binding.fabStart.setOnClickListener {
-            isDrawing = true;
-            mPoints = arrayListOf()
-            lastPoint = null; // 重置上一个点
+            beginRouteDrawing()
         }
 
         binding.fabRollback.setOnClickListener {
@@ -257,11 +266,16 @@ class RouteEditFragment : Fragment() {
             if (mPoints.size > 0) {
                 mPoints.removeAt(mPoints.size - 1)
                 refresh()
+                updateDrawHint()
             }
         }
 
         binding.fabComplete.setOnClickListener {
-            isDrawing = false
+            if (mPoints.size < 2) {
+                Toast.makeText(requireContext(), "至少需要两个路径点", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            endRouteDrawing()
             if (!showAddRouteDialog()) {
                 Toast.makeText(requireContext(), "选择路线异常", Toast.LENGTH_SHORT).show()
             }
@@ -279,41 +293,105 @@ class RouteEditFragment : Fragment() {
         return binding.root
     }
 
+    private fun beginRouteDrawing() {
+        if (isDrawing) {
+            centerCursorOnMap()
+            return
+        }
+        isDrawing = true
+        mPoints = arrayListOf()
+        mapViewModel.amap.clear()
+        mapViewModel.selectedMarker = null
+        setMapGesturesEnabled(false)
+
+        binding.routeDrawOverlay.visibility = View.VISIBLE
+        binding.routeDrawHint.visibility = View.VISIBLE
+        binding.routeDrawHint.alpha = 0f
+        binding.routeDrawHint.animate().alpha(1f).setDuration(180L).start()
+        updateDrawHint()
+        binding.routeDrawOverlay.post { centerCursorOnMap() }
+    }
+
+    private fun endRouteDrawing() {
+        isDrawing = false
+        setMapGesturesEnabled(true)
+        binding.routeDrawOverlay.visibility = View.GONE
+        _binding?.routeDrawHint?.animate()
+            ?.alpha(0f)
+            ?.setDuration(140L)
+            ?.withEndAction {
+                _binding?.routeDrawHint?.apply {
+                    visibility = View.GONE
+                    alpha = 1f
+                }
+            }
+            ?.start()
+    }
+
+    private fun setMapGesturesEnabled(enabled: Boolean) {
+        val settings = mapViewModel.amap.uiSettings
+        settings.isScrollGesturesEnabled = enabled
+        settings.isZoomGesturesEnabled = enabled
+    }
+
+    private fun centerCursorOnMap() {
+        if (_binding == null) return
+        val target = mapViewModel.amap.cameraPosition.target
+        val screenPoint = mapViewModel.amap.projection.toScreenLocation(target)
+        moveRouteCursor(screenPoint.x.toFloat(), screenPoint.y.toFloat())
+    }
+
+    private fun moveRouteCursor(x: Float, y: Float) {
+        if (_binding == null) return
+        val overlay = binding.routeDrawOverlay
+        val cursor = binding.routeCursor
+        if (overlay.width == 0 || cursor.width == 0) return
+
+        val halfWidth = cursor.width / 2f
+        val halfHeight = cursor.height / 2f
+        cursor.x = (x - halfWidth).coerceIn(0f, (overlay.width - cursor.width).coerceAtLeast(0).toFloat())
+        cursor.y = (y - halfHeight).coerceIn(0f, (overlay.height - cursor.height).coerceAtLeast(0).toFloat())
+    }
+
+    private fun cursorWgs(): Pair<Double, Double>? {
+        if (_binding == null) return null
+        val cursor = binding.routeCursor
+        val point = Point(
+            (cursor.x + cursor.width / 2f).toInt(),
+            (cursor.y + cursor.height / 2f).toInt()
+        )
+        return mapViewModel.amap.projection.fromScreenLocation(point).wgs84
+    }
+
+    private fun addRoutePointAtCursor() {
+        val wgs = cursorWgs() ?: return
+        if (mPoints.lastOrNull() == wgs) return
+        mPoints.add(wgs)
+        refresh()
+        updateDrawHint()
+    }
+
+    private fun updateDrawHint() {
+        if (_binding == null) return
+        binding.routeDrawHintText.text = if (mPoints.isEmpty()) {
+            getString(R.string.route_draw_hint)
+        } else {
+            getString(R.string.route_draw_points, mPoints.size)
+        }
+    }
+
     private fun refresh() {
         mapViewModel.amap.clear() // 清除之前的所有覆盖物
         mapViewModel.selectedMarker = null
 
-        // 绘制之前记录的点到点的线
-        for (i in 0 until mPoints.size - 1) {
+        if (mPoints.size >= 2) {
             mapViewModel.amap.addPolyline(
                 PolylineOptions()
                     .color(Color.argb(178, 0, 78, 255))
                     .width(10f)
-                    .add(mPoints[i].gcj02, mPoints[i + 1].gcj02)
+                    .addAll(mPoints.map { it.gcj02 })
             )
         }
-    }
-
-    private fun drawLine(start: Pair<Double, Double>, end: Pair<Double, Double>) {
-        mapViewModel.amap.clear() // 清除之前的所有覆盖物
-        mapViewModel.selectedMarker = null
-
-        // 绘制之前记录的点到点的线
-        for (i in 0 until mPoints.size - 1) {
-            mapViewModel.amap.addPolyline(
-                PolylineOptions()
-                    .color(Color.argb(178, 0, 78, 255))
-                    .width(10f)
-                    .add(mPoints[i].gcj02, mPoints[i + 1].gcj02)
-            )
-        }
-
-        mapViewModel.amap.addPolyline(
-            PolylineOptions()
-                .color(Color.argb(178, 0, 78, 255))
-                .width(10f)
-                .add(start.gcj02, end.gcj02)
-        )
     }
 
 
@@ -456,6 +534,7 @@ class RouteEditFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        isDrawing = false
         _binding?.let {
             val map = it.mapView.map
             // 只有当前 Fragment 的地图仍是共享地图时才清状态，避免切换页面时把新页面覆盖掉。

@@ -233,6 +233,14 @@ class MainActivity : AppCompatActivity() {
                     mapViewModel.markName = formatAddress
                     address.city?.takeIf { it.isNotBlank() }?.let { mCityString = it }
 
+                    val currentGcj = mapViewModel.currentLocationGcj
+                    if (currentGcj != null && queryPoint != null &&
+                        kotlin.math.abs(queryPoint.latitude - currentGcj.latitude) < 1e-4 &&
+                        kotlin.math.abs(queryPoint.longitude - currentGcj.longitude) < 1e-4
+                    ) {
+                        mapViewModel.currentAddress.postValue(formatAddress)
+                    }
+
                     runOnUiThread {
                         mapViewModel.selectedMarker?.let { marker ->
                             val selection = marker.getObject() as? MapSelection
@@ -310,7 +318,7 @@ class MainActivity : AppCompatActivity() {
 
                 markMap()
 
-                binding.appBarMain.searchLinear.visibility = View.INVISIBLE
+                hideSearchResults()
                 searchItem.collapseActionView()
             }
         }
@@ -333,7 +341,7 @@ class MainActivity : AppCompatActivity() {
                                 intArrayOf(R.id.poi_name, R.id.poi_address, R.id.poi_longitude, R.id.poi_latitude, R.id.poi_tag)
                             )
                             mSearchList.setAdapter(simAdapt)
-                            binding.appBarMain.searchLinear.visibility = View.VISIBLE
+                            showSearchResults()
                         }
                     }
                 }
@@ -354,7 +362,7 @@ class MainActivity : AppCompatActivity() {
                         mapViewModel.amap.clear()
                         mapViewModel.selectedMarker = null
                     }
-                    binding.appBarMain.searchLinear.visibility = View.INVISIBLE
+                    hideSearchResults()
                 } catch (e: Exception) {
                     Toast.makeText(this@MainActivity, "搜索出错", Toast.LENGTH_SHORT).show()
                     Log.e("MainActivity", "Search error: ${e.stackTraceToString()}")
@@ -374,12 +382,61 @@ class MainActivity : AppCompatActivity() {
                         Log.e("MainActivity", "Search error: ${e.stackTraceToString()}")
                     }
                 } else {
-                    binding.appBarMain.searchLinear.visibility = View.GONE
+                    hideSearchResults()
                 }
                 return true
             }
         })
         return true
+    }
+
+    /**
+     * 从首页的悬浮搜索框打开顶部 SearchView，复用现有的高德 Inputtips 搜索。
+     */
+    fun openSearch() {
+        if (!::binding.isInitialized) return
+        invalidateOptionsMenu()
+        binding.appBarMain.toolbar.post {
+            val searchItem = binding.appBarMain.toolbar.menu.findItem(R.id.action_search)
+                ?: return@post
+            searchItem.isVisible = true
+            searchItem.expandActionView()
+            (searchItem.actionView as? SearchView)?.apply {
+                isIconified = false
+                setQuery("", false)
+                requestFocus()
+            }
+        }
+    }
+
+    private fun showSearchResults() {
+        val card = binding.appBarMain.searchLinear
+        if (card.visibility == View.VISIBLE && card.alpha >= 0.99f) return
+        card.animate().cancel()
+        card.alpha = 0f
+        card.translationY = -10f
+        card.visibility = View.VISIBLE
+        card.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(180L)
+            .start()
+    }
+
+    private fun hideSearchResults() {
+        val card = binding.appBarMain.searchLinear
+        if (card.visibility != View.VISIBLE) return
+        card.animate().cancel()
+        card.animate()
+            .alpha(0f)
+            .translationY(-8f)
+            .setDuration(140L)
+            .withEndAction {
+                card.visibility = View.GONE
+                card.alpha = 1f
+                card.translationY = 0f
+            }
+            .start()
     }
 
     private fun markMap() = with(mapViewModel) {

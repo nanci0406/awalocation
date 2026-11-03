@@ -17,19 +17,24 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import com.amap.api.maps.AMap
 import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.PolylineOptions
 import com.amap.api.services.core.LatLonPoint
 import com.amap.api.services.geocoder.GeocodeSearch
 import com.amap.api.services.geocoder.RegeocodeQuery
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
+import com.nanci.awalocation.MainActivity
 import com.nanci.awalocation.R
 import com.nanci.awalocation.amap.MapSelection
 import com.nanci.awalocation.amap.animateTo
 import com.nanci.awalocation.amap.setupMap
 import com.nanci.awalocation.amap.showSelection
+import com.nanci.awalocation.amap.zoomIn
+import com.nanci.awalocation.amap.zoomOut
 import com.nanci.awalocation.databinding.FragmentHomeBinding
 import com.nanci.awalocation.ext.Loc4j
 import com.nanci.awalocation.ext.gcj02
@@ -39,6 +44,8 @@ import com.nanci.awalocation.ext.selectRoute
 import com.nanci.awalocation.ext.wgs84
 import com.nanci.awalocation.ui.viewmodel.AmapMapViewModel
 import com.nanci.awalocation.ui.viewmodel.HomeViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 
 class HomeFragment : Fragment() {
@@ -51,6 +58,7 @@ class HomeFragment : Fragment() {
     private val homeViewModel by viewModels<HomeViewModel>()
     private val mapViewModel by activityViewModels<AmapMapViewModel>()
     private var currentLocationGeocoded = false
+    private var hasCenteredOnLocation = false
 
     @SuppressLint("SetTextI18n")
     override fun onCreateView(
@@ -62,6 +70,26 @@ class HomeFragment : Fragment() {
         val root: View = binding.root
         binding.mapView.onCreate(savedInstanceState)
         currentLocationGeocoded = false
+        hasCenteredOnLocation = false
+
+        // 首次定位前先盖住地图，避免先闪一下默认城市。
+        binding.homeMapLoading.visibility = View.VISIBLE
+        binding.homeMapLoading.alpha = 1f
+
+        binding.homeSearchCard.setOnClickListener {
+            (activity as? MainActivity)?.openSearch()
+        }
+        binding.zoomIn.setOnClickListener { mapViewModel.amap.zoomIn() }
+        binding.zoomOut.setOnClickListener { mapViewModel.amap.zoomOut() }
+
+        binding.homeTopOverlay.alpha = 0f
+        binding.homeTopOverlay.translationY = -12f
+        binding.homeTopOverlay.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(220L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
 
         // Fixed the issue that the Fab was opening incorrectly after switching back to Home for Fragments
         homeViewModel.mFabOpened = false
@@ -106,7 +134,16 @@ class HomeFragment : Fragment() {
 
             setOnMyLocationChangeListener { location ->
                 if (location == null) return@setOnMyLocationChangeListener
+                val gcjLocation = LatLng(location.latitude, location.longitude)
                 mapViewModel.currentLocation = location.wgs84
+                mapViewModel.currentLocationGcj = gcjLocation
+
+                if (!hasCenteredOnLocation) {
+                    hasCenteredOnLocation = true
+                    animateTo(gcjLocation, 17f)
+                    hideMapLoading()
+                }
+
                 val geocodeSearch = mapViewModel.geocodeSearch
                 if (!currentLocationGeocoded && geocodeSearch != null) {
                     currentLocationGeocoded = true
@@ -127,6 +164,27 @@ class HomeFragment : Fragment() {
                     else -> R.id.map_type_normal
                 }
             )
+        }
+
+        mapViewModel.currentLocation?.let { cached ->
+            hasCenteredOnLocation = true
+            mapViewModel.currentLocationGcj = cached.gcj02
+            binding.mapView.post {
+                mapViewModel.amap.moveCamera(CameraUpdateFactory.newLatLngZoom(cached.gcj02, 17f))
+                hideMapLoading()
+            }
+            if (!currentLocationGeocoded) {
+                mapViewModel.geocodeSearch?.let { geocodeSearch ->
+                    currentLocationGeocoded = true
+                    geocodeSearch.getFromLocationAsyn(
+                        RegeocodeQuery(
+                            LatLonPoint(cached.gcj02.latitude, cached.gcj02.longitude),
+                            200f,
+                            GeocodeSearch.AMAP
+                        )
+                    )
+                }
+            }
         }
 
         binding.mapTypeGroup.setOnCheckedChangeListener { _, checkedId ->
@@ -263,19 +321,45 @@ class HomeFragment : Fragment() {
         return root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        mapViewModel.currentAddress.observe(viewLifecycleOwner) { address ->
+            binding.homeCurrentAddress.text = address?.takeIf { it.isNotBlank() }
+                ?: getString(R.string.current_location_loading)
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            delay(3500)
+            if (_binding == null) return@launch
+            hideMapLoading()
+            if (mapViewModel.currentAddress.value.isNullOrBlank()) {
+                binding.homeCurrentAddress.text = getString(R.string.current_location_unknown)
+            }
+        }
+    }
+
+    private fun hideMapLoading() {
+        val loading = _binding?.homeMapLoading ?: return
+        if (loading.visibility != View.VISIBLE) return
+        loading.animate()
+            .alpha(0f)
+            .setDuration(220L)
+            .withEndAction { loading.visibility = View.GONE }
+            .start()
+    }
+
     private fun previewRoute(points: kotlin.collections.List<Pair<Double, Double>>) {
         mapViewModel.amap.clear() // 清除之前的所有覆盖物
         mapViewModel.selectedMarker = null
 
-        // 绘制之前记录的点到点的线
-        for (i in 0 until points.size - 1) {
-            mapViewModel.amap.addPolyline(
-                PolylineOptions()
-                    .color(Color.argb(178, 0, 78, 255))
-                    .width(10f)
-                    .add(points[i].gcj02, points[i + 1].gcj02)
-            )
-        }
+        if (points.size < 2) return
+        mapViewModel.amap.addPolyline(
+            PolylineOptions()
+                .color(Color.argb(178, 0, 78, 255))
+                .width(10f)
+                .addAll(points.map { it.gcj02 })
+        )
     }
 
     @SuppressLint("SetTextI18n", "MissingInflatedId", "MutatingSharedPrefs")

@@ -127,6 +127,26 @@
                         android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
                         android:textColor="@color/rocker_text_color" />
                 </LinearLayout>
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/route_loop"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="44dp"
+                    android:text="@string/route_loop"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                    android:textColor="@color/awalocation_text_color"
+                    app:buttonTint="@color/awalocation_primary" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="0dp"
+                    android:text="@string/route_loop_desc"
+                    android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                    android:textColor="@color/awalocation_on_surface_variant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

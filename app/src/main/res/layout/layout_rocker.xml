@@ -39,6 +39,21 @@
             android:gravity="center"
             android:orientation="vertical">
 
+            <!-- 拖动把手：拖动这里移动整个悬浮窗 -->
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/drag_handle"
+                android:layout_width="56dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center_horizontal"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/drag_rocker"
+                android:paddingStart="18dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="18dp"
+                android:paddingBottom="5dp"
+                android:src="@drawable/baseline_drag_handle_24"
+                app:tint="@color/awalocation_hint_color" />
+
             <!-- 主控制行：展开时显示 [移动/收起] [自动] [设置]；收起时只保留 [展开/移动] -->
             <LinearLayout
                 android:id="@+id/rocker_row_main"

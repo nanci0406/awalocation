@@ -41,11 +41,17 @@ class AmapInfoWindowAdapter(private val context: Context) : AMap.InfoWindowAdapt
 }
 
 fun AMap.setupMap(context: Context) {
-    uiSettings.isZoomControlsEnabled = true
+    // 自带缩放按钮是旧版样式，改用页面上的 Material 控件；同时关掉高开销的
+    // 3D 建筑/室内图和旋转倾斜手势，低端机上会明显顺一些。
+    uiSettings.isZoomControlsEnabled = false
+    uiSettings.isMyLocationButtonEnabled = false
+    uiSettings.isCompassEnabled = false
     uiSettings.isScaleControlsEnabled = true
-    uiSettings.isCompassEnabled = true
-    uiSettings.isTiltGesturesEnabled = true
+    uiSettings.isRotateGesturesEnabled = false
+    uiSettings.isTiltGesturesEnabled = false
     uiSettings.setLogoPosition(AMapOptions.LOGO_POSITION_BOTTOM_RIGHT)
+    showBuildings(false)
+    showIndoorMap(false)
     setInfoWindowAdapter(AmapInfoWindowAdapter(context))
 
     val style = MyLocationStyle()
@@ -86,6 +92,10 @@ fun AMap.animateTo(latLng: LatLng, zoom: Float? = null) {
         }
     )
 }
+
+fun AMap.zoomIn() = animateCamera(CameraUpdateFactory.zoomIn())
+
+fun AMap.zoomOut() = animateCamera(CameraUpdateFactory.zoomOut())
 
 fun Tip.toPoi(currentLocation: Pair<Double, Double>? = null): Poi? {
     val latLonPoint = point ?: return null

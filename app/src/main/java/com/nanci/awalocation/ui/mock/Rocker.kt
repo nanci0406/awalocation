@@ -175,6 +175,7 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
     }
 
     private fun moveWindowTo(x: Int, y: Int) {
+        if (!isStart) return
         val metrics = activity.resources.displayMetrics
         val maxX = (metrics.widthPixels - root.width).coerceAtLeast(0)
         val maxY = (metrics.heightPixels - root.height).coerceAtLeast(0)

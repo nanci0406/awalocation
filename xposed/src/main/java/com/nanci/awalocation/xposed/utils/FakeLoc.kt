@@ -132,7 +132,8 @@ object FakeLoc {
             }
         }
 
-    @Volatile var accuracy = 25.0f
+    // 默认模拟开阔室外良好 GPS 精度（~4.5m），避免 25m 导致跑步/地图软件判定为最弱 GPS 信号
+    @Volatile var accuracy = 4.5f
         set(value) {
             field = if (value < 0) {
                 -value
@@ -156,7 +157,8 @@ object FakeLoc {
         val maxJitter = accuracy.toDouble()
         val distance = when {
             n >= 0.0 -> n
-            maxJitter > 0.0 -> Random.nextDouble(0.0, maxJitter)
+            // 连续轨迹下只施加温和微抖动（<= 0.8m），避免按 accuracy 全半径乱跳把起点移动淹没在噪声圈里
+            maxJitter > 0.0 -> Random.nextDouble(0.0, (maxJitter * 0.12).coerceAtMost(0.8))
             else -> 0.0
         }
 
@@ -168,7 +170,7 @@ object FakeLoc {
         val earthRadius = 6371000.0
         val radiusInDegrees = distance / earthRadius * (180 / PI)
 
-        val jitterAngle = if (Random.nextBoolean()) angle + 45 else angle - 45
+        val jitterAngle = (angle + Random.nextDouble(-180.0, 180.0) + 360.0) % 360.0
 
         val newLat = lat + radiusInDegrees * cos(Math.toRadians(jitterAngle))
         val newLon = lon + radiusInDegrees * sin(Math.toRadians(jitterAngle)) / cos(Math.toRadians(lat))

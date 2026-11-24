@@ -121,10 +121,9 @@ class MockServiceViewModel : ViewModel() {
             routeMockJob = viewModelScope.launch(Dispatchers.IO) {
                 routeLoop@ while (isActive) {
                     routeMockCoroutine.routeMockCoroutine()
-                    val delayTime = appContext.reportDuration.toLong().coerceAtLeast(20L)
-                    delay(delayTime)
                     if (routeMockCoroutine.isPaused) continue@routeLoop
 
+                    val delayTime = appContext.reportDuration.toLong().coerceAtLeast(20L)
                     val lm = locationManager
                     val route = selectedRoute
                     if (lm == null || route == null || route.route.isEmpty()) {
@@ -134,7 +133,10 @@ class MockServiceViewModel : ViewModel() {
                         continue@routeLoop
                     }
 
-                    // 如果是第0阶段，定位到第一个点
+                    var currentLat: Double
+                    var currentLon: Double
+
+                    // 如果是第0阶段，定位到第一个点后立即推进第一拍，避免启动后再空等
                     if (routeStage == 0) {
                         val first = route.route[0]
                         if (!MockServiceHelper.setLocation(lm, first.first, first.second)) {
@@ -143,40 +145,43 @@ class MockServiceViewModel : ViewModel() {
                             rocker.autoStatus = false
                             continue@routeLoop
                         }
-                        routeStage++
-                    }
-
-                    // 处理所有已到达的阶段
-                    var reachedWaypointInThisTick = false
-                    while (routeStage < route.route.size) {
-                        val target = route.route[routeStage]
+                        currentLat = first.first
+                        currentLon = first.second
+                        routeStage = 1
+                    } else {
                         val location = MockServiceHelper.getLocation(lm)
                         if (location == null) {
                             routeMockCoroutine.pause()
                             rocker.autoStatus = false
                             continue@routeLoop
                         }
-                        val currentLat = location.first
-                        val currentLon = location.second
+                        currentLat = location.first
+                        currentLon = location.second
+                    }
 
+                    val currentSpeed = appContext.speed
+                    FakeLoc.speed = currentSpeed
+                    val stepDistance = currentSpeed * (delayTime / 1000.0)
+
+                    // 处理所有已到达的阶段（单次读取坐标，避免每拍重复 IPC）
+                    var reachedWaypointInThisTick = false
+                    while (routeStage < route.route.size) {
+                        val target = route.route[routeStage]
                         val inverse = Geodesic.WGS84.Inverse(
                             currentLat,
                             currentLon,
                             target.first,
                             target.second
                         )
-                        val currentSpeed = appContext.speed
-                        FakeLoc.speed = currentSpeed
-                        val stepDistance = currentSpeed * (delayTime / 1000.0)
-                        // 判断距离是否小于1米或本次步长
-                        if (inverse.s12 < 1.0 || inverse.s12 < stepDistance) {
-                            // 精确设置位置到目标点并进入下一阶段
+                        if (inverse.s12 < 1.0 || inverse.s12 <= stepDistance) {
                             if (!MockServiceHelper.setLocation(lm, target.first, target.second)) {
                                 Log.e("MockServiceViewModel", "Failed to set waypoint location")
                                 routeMockCoroutine.pause()
                                 rocker.autoStatus = false
                                 continue@routeLoop
                             }
+                            currentLat = target.first
+                            currentLon = target.second
                             routeStage++
                             reachedWaypointInThisTick = true
                         } else {
@@ -189,6 +194,7 @@ class MockServiceViewModel : ViewModel() {
                         if (appContext.routeLoop) {
                             // 循环模式：回到起点继续跑，直到用户手动停止。
                             routeStage = 0
+                            delay(delayTime)
                             continue@routeLoop
                         }
                         routeMockCoroutine.pause()
@@ -204,20 +210,12 @@ class MockServiceViewModel : ViewModel() {
                     }
 
                     if (reachedWaypointInThisTick) {
+                        delay(delayTime)
                         continue@routeLoop
                     }
 
                     // 处理当前目标点的移动
                     val target = route.route[routeStage]
-                    val location = MockServiceHelper.getLocation(lm)
-                    if (location == null) {
-                        routeMockCoroutine.pause()
-                        rocker.autoStatus = false
-                        continue@routeLoop
-                    }
-                    val currentLat = location.first
-                    val currentLon = location.second
-
                     val inverse = Geodesic.WGS84.Inverse(
                         currentLat,
                         currentLon,
@@ -229,13 +227,11 @@ class MockServiceViewModel : ViewModel() {
                         azimuth += 360
                     }
 
-                    val currentSpeed = appContext.speed
-                    FakeLoc.speed = currentSpeed
-                    val stepDistance = currentSpeed * (delayTime / 1000.0)
                     Log.d("MockServiceViewModel", "从 $currentLat, $currentLon 移动到 ${target.first}, ${target.second}, 方位角: $azimuth, 步长: $stepDistance")
                     if (!MockServiceHelper.move(lm, stepDistance, azimuth)) {
                         Log.e("MockServiceViewModel", "移动失败")
                     }
+                    delay(delayTime)
                 }
             }
         }

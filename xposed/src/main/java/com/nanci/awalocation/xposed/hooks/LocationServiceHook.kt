@@ -40,13 +40,13 @@ import kotlin.uuid.ExperimentalUuidApi
 
 private const val MAX_SATELLITES = 36 // 模拟可见卫星数上限
 
-// 载噪比范围，考虑不同轨道类型
-private const val GEO_MIN_CN0 = 30.0f
-private const val GEO_MAX_CN0 = 45.0f
-private const val IGSO_MIN_CN0 = 25.0f
-private const val IGSO_MAX_CN0 = 42.0f
-private const val MEO_MIN_CN0 = 20.0f
-private const val MEO_MAX_CN0 = 40.0f
+// 载噪比范围（模拟开阔室外良好接收环境，避免 20 dB-Hz 附近被判定为弱信号）
+private const val GEO_MIN_CN0 = 38.0f
+private const val GEO_MAX_CN0 = 46.0f
+private const val IGSO_MIN_CN0 = 35.0f
+private const val IGSO_MAX_CN0 = 44.0f
+private const val MEO_MIN_CN0 = 32.0f
+private const val MEO_MAX_CN0 = 43.0f
 
 // 频率 (Hz)
 private const val GPS_L1_FREQ = 1575420000.0f
@@ -78,9 +78,9 @@ object GnssFlags {
 }
 
 sealed class OrbitType(val minCn0: Float, val maxCn0: Float, val elevationRange: ClosedRange<Float>) {
-    object GEO : OrbitType(GEO_MIN_CN0, GEO_MAX_CN0, 35f..50f)
-    object IGSO : OrbitType(IGSO_MIN_CN0, IGSO_MAX_CN0, 20f..60f)
-    object MEO : OrbitType(MEO_MIN_CN0, MEO_MAX_CN0, 0f..90f)
+    object GEO : OrbitType(GEO_MIN_CN0, GEO_MAX_CN0, 35f..55f)
+    object IGSO : OrbitType(IGSO_MIN_CN0, IGSO_MAX_CN0, 25f..68f)
+    object MEO : OrbitType(MEO_MIN_CN0, MEO_MAX_CN0, 18f..82f)
 }
 
 data class MockSatellite(
@@ -184,7 +184,27 @@ internal object LocationServiceHook: BaseLocationHook() {
     val locationListeners = LinkedBlockingQueue<Pair<String, IInterface>>()
     val gnssStatusListeners = CopyOnWriteArrayList<IInterface>()
 
+    private val firstFixNotifiedBinders = java.util.Collections.newSetFromMap(
+        java.util.concurrent.ConcurrentHashMap<IBinder, Boolean>()
+    )
     private val isGnssDaemonRunning = AtomicBoolean(false)
+    private val isLocationHeartbeatRunning = AtomicBoolean(false)
+
+    @Volatile var lastInUseSatelliteCount: Int = 20
+    @Volatile private var lastLocationBroadcastElapsedMs: Long = 0L
+
+    private data class ActiveSatelliteState(
+        val sat: MockSatellite,
+        var cn0: Float,
+        var elevation: Float,
+        var azimuth: Float,
+        val usedInFix: Boolean
+    )
+
+    private val constellationLock = Any()
+    private var activeConstellation: MutableList<ActiveSatelliteState> = mutableListOf()
+    private var lastConstellationRefreshMs: Long = 0L
+    private var lastConstellationMinSats: Int = -1
 
     fun startGnssMockDaemon() {
         if (!isGnssDaemonRunning.compareAndSet(false, true)) return
@@ -204,6 +224,36 @@ internal object LocationServiceHook: BaseLocationHook() {
                 }
             } finally {
                 isGnssDaemonRunning.set(false)
+            }
+        }
+    }
+
+    /**
+     * 1Hz 位置心跳：在 FakeLoc.enable 开启且近期没有主动 move() 时，
+     * 持续向已注册监听器推送位置，解决室内无硬件 GPS 修复时应用长时间不动/搜星中的问题。
+     */
+    fun startLocationHeartbeatDaemon() {
+        if (!isLocationHeartbeatRunning.compareAndSet(false, true)) return
+        kotlin.concurrent.thread(name = "LocationHeartbeatDaemon", isDaemon = true) {
+            try {
+                while (FakeLoc.enable) {
+                    try {
+                        Thread.sleep(1000L)
+                        if (!FakeLoc.enable) break
+                        if (FakeLoc.latitude == 0.0 && FakeLoc.longitude == 0.0) continue
+                        if (locationListeners.isEmpty()) continue
+                        val now = SystemClock.elapsedRealtime()
+                        if (now - lastLocationBroadcastElapsedMs >= 950L) {
+                            callOnLocationChanged()
+                        }
+                    } catch (e: InterruptedException) {
+                        break
+                    } catch (e: Throwable) {
+                        Logger.error("LocationHeartbeatDaemon error", e)
+                    }
+                }
+            } finally {
+                isLocationHeartbeatRunning.set(false)
             }
         }
     }
@@ -229,71 +279,121 @@ internal object LocationServiceHook: BaseLocationHook() {
 
     private fun removeGnssStatusListenerByBinder(binder: IBinder) {
         gnssStatusListeners.removeIf { it.asBinder() == binder }
+        firstFixNotifiedBinders.remove(binder)
     }
 
-    fun generateMockGnssData(svCount: Int, selectedSatellites: List<MockSatellite>): MockGnssData {
-        val mockGps = MockGnssData(
-            svCount = svCount,
-            svidWithFlags = IntArray(svCount),
-            cn0s = FloatArray(svCount),
-            elevations = FloatArray(svCount),
-            azimuths = FloatArray(svCount),
-            carrierFreqs = FloatArray(svCount)
-        )
+    private fun ensureAndStepConstellation(): Pair<MockGnssData, List<ActiveSatelliteState>> {
+        synchronized(constellationLock) {
+            val minSats = FakeLoc.minSatellites.coerceIn(16, MAX_SATELLITES)
+            val now = SystemClock.elapsedRealtime()
+            val needRebuild = activeConstellation.isEmpty() ||
+                lastConstellationMinSats != minSats ||
+                (now - lastConstellationRefreshMs) >= 60_000L
 
-        selectedSatellites.forEachIndexed { index, sat ->
-            mockGps.svidWithFlags[index] = 0
+            if (needRebuild) {
+                val targetCount = Random.nextInt(minSats, (minSats + 8).coerceAtMost(MAX_SATELLITES) + 1)
+                // 均衡挑选 GPS + 北斗 + GLONASS，确保高仰角高信噪比
+                val gps = satelliteList.filter { it.constellation == GnssFlags.CONSTELLATION_GPS }.shuffled()
+                val bds = satelliteList.filter { it.constellation == GnssFlags.CONSTELLATION_BEIDOU }.shuffled()
+                val glo = satelliteList.filter { it.constellation == GnssFlags.CONSTELLATION_GLONASS }.shuffled()
+                val picked = ArrayList<MockSatellite>(targetCount)
+                val gpsCount = (targetCount * 0.42f).toInt().coerceAtLeast(6)
+                val bdsCount = (targetCount * 0.42f).toInt().coerceAtLeast(6)
+                picked.addAll(gps.take(gpsCount))
+                picked.addAll(bds.take(bdsCount))
+                picked.addAll(glo.take((targetCount - picked.size).coerceAtLeast(0)))
+                if (picked.size < targetCount) {
+                    val remaining = satelliteList.filterNot { it in picked }.shuffled()
+                    picked.addAll(remaining.take(targetCount - picked.size))
+                }
 
-            val hasEphemeris = Random.nextFloat() > 0.08f   // 92%概率有星历
-            val hasAlmanac = Random.nextFloat() > 0.03f     // 97%概率有年历
-            val usedInFix = Random.nextFloat() > 0.2f       // 80%概率用于定位
-            val hasCarrierFreq = true                       // 总是有载波频率
-            val hasBasebandCn0 = true                       // 总是有基带载噪比
-
-            var flags = GnssFlags.SVID_FLAGS_NONE
-            if (hasEphemeris) flags = flags or GnssFlags.SVID_FLAGS_HAS_EPHEMERIS_DATA
-            if (hasAlmanac) flags = flags or GnssFlags.SVID_FLAGS_HAS_ALMANAC_DATA
-            if (usedInFix) flags = flags or GnssFlags.SVID_FLAGS_USED_IN_FIX
-            if (hasCarrierFreq) flags = flags or GnssFlags.SVID_FLAGS_HAS_CARRIER_FREQUENCY
-            if (hasBasebandCn0) flags = flags or GnssFlags.SVID_FLAGS_HAS_BASEBAND_CN0
-
-            mockGps.svidWithFlags[index] = (sat.prn shl GnssFlags.SVID_SHIFT_WIDTH) or
-                    ((sat.constellation and GnssFlags.CONSTELLATION_TYPE_MASK) shl GnssFlags.CONSTELLATION_TYPE_SHIFT_WIDTH) or
-                    flags
-
-            mockGps.cn0s[index] = when (sat.type) {
-                is OrbitType.GEO -> Random.nextFloat(GEO_MIN_CN0, GEO_MAX_CN0)
-                is OrbitType.IGSO -> Random.nextFloat(IGSO_MIN_CN0, IGSO_MAX_CN0)
-                is OrbitType.MEO -> Random.nextFloat(MEO_MIN_CN0, MEO_MAX_CN0)
+                val inUseTarget = ((picked.size * 0.88f).toInt()).coerceAtLeast(14).coerceAtMost(picked.size)
+                activeConstellation = picked.mapIndexed { idx, sat ->
+                    val used = idx < inUseTarget
+                    val baseCn0 = if (used) {
+                        Random.nextFloat(sat.type.minCn0 + 2f, sat.type.maxCn0)
+                    } else {
+                        Random.nextFloat(sat.type.minCn0 - 4f, sat.type.minCn0 + 2f)
+                    }
+                    ActiveSatelliteState(
+                        sat = sat,
+                        cn0 = baseCn0.coerceIn(26f, 47f),
+                        elevation = Random.nextFloat(sat.type.elevationRange.start, sat.type.elevationRange.endInclusive),
+                        azimuth = Random.nextFloat(0f, 360f),
+                        usedInFix = used
+                    )
+                }.toMutableList()
+                lastConstellationRefreshMs = now
+                lastConstellationMinSats = minSats
+            } else {
+                // 每秒平滑微调 CN0 / 仰角 / 方位角，模拟真实卫星轨迹呼吸感
+                for (state in activeConstellation) {
+                    val low = if (state.usedInFix) state.sat.type.minCn0 + 1f else state.sat.type.minCn0 - 5f
+                    val high = state.sat.type.maxCn0
+                    state.cn0 = (state.cn0 + Random.nextFloat(-0.7f, 0.7f)).coerceIn(low, high)
+                    state.elevation = (state.elevation + Random.nextFloat(-0.25f, 0.25f))
+                        .coerceIn(state.sat.type.elevationRange.start, state.sat.type.elevationRange.endInclusive)
+                    state.azimuth = (state.azimuth + Random.nextFloat(-0.35f, 0.35f) + 360f) % 360f
+                }
             }
-            mockGps.elevations[index] = Random.nextFloat(sat.type.elevationRange.start, sat.type.elevationRange.endInclusive)
-            mockGps.azimuths[index] = Random.nextFloat(0f, 360f)
-            mockGps.carrierFreqs[index] = sat.defaultFreq
+
+            val snapshot = activeConstellation.map { it.copy() }
+            val svCount = snapshot.size
+            val svidWithFlags = IntArray(svCount)
+            val cn0s = FloatArray(svCount)
+            val elevations = FloatArray(svCount)
+            val azimuths = FloatArray(svCount)
+            val carrierFreqs = FloatArray(svCount)
+            var inUseCount = 0
+
+            snapshot.forEachIndexed { index, state ->
+                var flags = GnssFlags.SVID_FLAGS_HAS_EPHEMERIS_DATA or
+                    GnssFlags.SVID_FLAGS_HAS_ALMANAC_DATA or
+                    GnssFlags.SVID_FLAGS_HAS_CARRIER_FREQUENCY or
+                    GnssFlags.SVID_FLAGS_HAS_BASEBAND_CN0
+                if (state.usedInFix) {
+                    flags = flags or GnssFlags.SVID_FLAGS_USED_IN_FIX
+                    inUseCount++
+                }
+                svidWithFlags[index] = (state.sat.prn shl GnssFlags.SVID_SHIFT_WIDTH) or
+                    ((state.sat.constellation and GnssFlags.CONSTELLATION_TYPE_MASK) shl GnssFlags.CONSTELLATION_TYPE_SHIFT_WIDTH) or
+                    flags
+                cn0s[index] = state.cn0
+                elevations[index] = state.elevation
+                azimuths[index] = state.azimuth
+                carrierFreqs[index] = state.sat.defaultFreq
+            }
+
+            lastInUseSatelliteCount = inUseCount
+            return MockGnssData(
+                svCount = svCount,
+                svidWithFlags = svidWithFlags,
+                cn0s = cn0s,
+                elevations = elevations,
+                azimuths = azimuths,
+                carrierFreqs = carrierFreqs
+            ) to snapshot
         }
-        return mockGps
     }
 
-    fun createMockGnssStatus(mockData: MockGnssData, selectedSatellites: List<MockSatellite>): GnssStatus? {
+    private fun createMockGnssStatusFromStates(mockData: MockGnssData, states: List<ActiveSatelliteState>): GnssStatus? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val builder = GnssStatus.Builder()
             for (i in 0 until mockData.svCount) {
-                val sat = selectedSatellites[i]
+                val state = states[i]
                 val cn0 = mockData.cn0s[i]
-                val elev = mockData.elevations[i]
-                val azim = mockData.azimuths[i]
-                val freq = mockData.carrierFreqs[i]
-                val basebandCn0 = (cn0 - Random.nextFloat(2f, 5f)).coerceAtLeast(0f)
+                val basebandCn0 = (cn0 - Random.nextFloat(1.5f, 3.0f)).coerceAtLeast(20f)
                 builder.addSatellite(
-                    sat.constellation,
-                    sat.prn,
+                    state.sat.constellation,
+                    state.sat.prn,
                     cn0,
-                    elev,
-                    azim,
+                    mockData.elevations[i],
+                    mockData.azimuths[i],
                     true,
                     true,
+                    state.usedInFix,
                     true,
-                    true,
-                    freq,
+                    mockData.carrierFreqs[i],
                     true,
                     basebandCn0
                 )
@@ -314,9 +414,33 @@ internal object LocationServiceHook: BaseLocationHook() {
                 mockData.elevations,
                 mockData.azimuths,
                 mockData.carrierFreqs,
-                FloatArray(mockData.svCount) { (mockData.cn0s[it] - Random.nextFloat(2f, 5f)).coerceAtLeast(0f) }
+                FloatArray(mockData.svCount) { (mockData.cn0s[it] - Random.nextFloat(1.5f, 3.0f)).coerceAtLeast(20f) }
             ) as? GnssStatus
         }.getOrNull()
+    }
+
+    fun buildCurrentMockGnssStatus(): GnssStatus? {
+        return runCatching {
+            val (mockData, states) = ensureAndStepConstellation()
+            createMockGnssStatusFromStates(mockData, states)
+        }.getOrNull()
+    }
+
+    private fun notifyFirstFixIfNeeded(listener: IInterface) {
+        val binder = listener.asBinder()
+        if (!firstFixNotifiedBinders.add(binder)) return
+        runCatching {
+            val mOnGnssStarted = XposedHelpers.findMethodExactIfExists(listener.javaClass, "onGnssStarted")
+            if (mOnGnssStarted != null) {
+                XposedBridge.invokeOriginalMethod(mOnGnssStarted, listener, emptyArray())
+            }
+        }
+        runCatching {
+            val mOnFirstFix = XposedHelpers.findMethodExactIfExists(listener.javaClass, "onFirstFix", Int::class.javaPrimitiveType)
+            if (mOnFirstFix != null) {
+                XposedBridge.invokeOriginalMethod(mOnFirstFix, listener, arrayOf(Random.nextInt(320, 780)))
+            }
+        }
     }
 
     fun callOnGnssStatusChanged() {
@@ -324,20 +448,19 @@ internal object LocationServiceHook: BaseLocationHook() {
         if (gnssStatusListeners.isEmpty()) return
 
         runCatching {
-            val minSats = FakeLoc.minSatellites.coerceIn(12, MAX_SATELLITES)
-            val svCount = Random.nextInt(minSats, MAX_SATELLITES + 1)
-            val selectedSatellites = satelliteList.shuffled().take(svCount)
-            val mockGps = generateMockGnssData(svCount, selectedSatellites)
-            val gnssStatus = createMockGnssStatus(mockGps, selectedSatellites)
+            val (mockGps, states) = ensureAndStepConstellation()
+            val gnssStatus = createMockGnssStatusFromStates(mockGps, states)
 
             val deadListeners = mutableListOf<IInterface>()
             for (listener in gnssStatusListeners) {
+                notifyFirstFixIfNeeded(listener)
                 val success = dispatchGnssStatus(listener, gnssStatus, mockGps)
                 if (!success && !listener.asBinder().isBinderAlive) {
                     deadListeners.add(listener)
                 }
             }
             if (deadListeners.isNotEmpty()) {
+                deadListeners.forEach { firstFixNotifiedBinders.remove(it.asBinder()) }
                 gnssStatusListeners.removeAll(deadListeners.toSet())
             }
         }.onFailure {
@@ -347,11 +470,9 @@ internal object LocationServiceHook: BaseLocationHook() {
 
     fun callOnGnssStatusChangedForListener(listener: IInterface) {
         runCatching {
-            val minSats = FakeLoc.minSatellites.coerceIn(12, MAX_SATELLITES)
-            val svCount = Random.nextInt(minSats, MAX_SATELLITES + 1)
-            val selectedSatellites = satelliteList.shuffled().take(svCount)
-            val mockGps = generateMockGnssData(svCount, selectedSatellites)
-            val gnssStatus = createMockGnssStatus(mockGps, selectedSatellites)
+            val (mockGps, states) = ensureAndStepConstellation()
+            val gnssStatus = createMockGnssStatusFromStates(mockGps, states)
+            notifyFirstFixIfNeeded(listener)
             dispatchGnssStatus(listener, gnssStatus, mockGps)
         }.onFailure {
             Logger.error("callOnGnssStatusChangedForListener failed", it)
@@ -374,7 +495,7 @@ internal object LocationServiceHook: BaseLocationHook() {
         if (!called) {
             kotlin.runCatching {
                 val svCount = mockGps.svCount
-                val baseband = FloatArray(svCount) { (mockGps.cn0s[it] - Random.nextFloat(2f, 5f)).coerceAtLeast(0f) }
+                val baseband = FloatArray(svCount) { (mockGps.cn0s[it] - Random.nextFloat(1.5f, 3.0f)).coerceAtLeast(20f) }
                 val mOnSvStatusChanged = XposedHelpers.findMethodBestMatch(
                     listener.javaClass,
                     "onSvStatusChanged",
@@ -561,23 +682,24 @@ internal object LocationServiceHook: BaseLocationHook() {
             //    void onProviderEnabledChanged(String provider, boolean enabled);
             //    void onFlushComplete(int requestCode);
             //}
-            val provider = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                kotlin.runCatching {
-                    XposedHelpers.callMethod(args[1], "getProvider") as? String
-                }.getOrNull()
-            } else {
-                args[0] as? String
-            } ?: "gps"
+            // Android 12+ 签名为 registerLocationListener(String provider, LocationRequest request, ILocationListener listener, ...)
+            val provider = (args.getOrNull(0) as? String) ?: kotlin.runCatching {
+                XposedHelpers.callMethod(args.getOrNull(1), "getProvider") as? String
+            }.getOrNull() ?: "gps"
             val listener = args.filterIsInstance<IInterface>().firstOrNull() ?: run {
                 Logger.error("registerLocationListener: listener is null: $method")
                 return@beforeHook
             }
 
             if(FakeLoc.enableDebugLog) {
-                Logger.debug("registerLocationListener: injected! $listener, from ${BinderUtils.getUidPackageNames()}")
+                Logger.debug("registerLocationListener: injected! $listener, provider=$provider, from ${BinderUtils.getUidPackageNames()}")
             }
 
             addLocationListenerInner(provider, listener)
+
+            if (FakeLoc.enable && (FakeLoc.latitude != 0.0 || FakeLoc.longitude != 0.0)) {
+                runCatching { dispatchLocationToListener(provider, listener) }
+            }
 
             if (FakeLoc.disableRegisterLocationListener) {
                 result = null
@@ -711,13 +833,10 @@ internal object LocationServiceHook: BaseLocationHook() {
                     if (cIGnssStatusListener.onceHookAllMethod("onSvStatusChanged", beforeHook {
                         if (!FakeLoc.enableMockGnss) return@beforeHook
 
-                        val minSats = FakeLoc.minSatellites.coerceIn(12, MAX_SATELLITES)
-                        val svCount = Random.nextInt(minSats, MAX_SATELLITES + 1)
-                        val selectedSatellites = satelliteList.shuffled().take(svCount)
-                        val mockGps = generateMockGnssData(svCount, selectedSatellites)
+                        val (mockGps, states) = ensureAndStepConstellation()
 
                         if (args[0] is Int) {
-                            args[0] = svCount
+                            args[0] = mockGps.svCount
                             args[1] = mockGps.svidWithFlags
                             args[2] = mockGps.cn0s
                             args[3] = mockGps.elevations
@@ -727,19 +846,19 @@ internal object LocationServiceHook: BaseLocationHook() {
                             }
 
                             if (args.size > 6) {
-                                args[6] = FloatArray(svCount) {
-                                    (mockGps.cn0s[it] - Random.nextFloat(2f, 5f)).coerceAtLeast(0f)
+                                args[6] = FloatArray(mockGps.svCount) {
+                                    (mockGps.cn0s[it] - Random.nextFloat(1.5f, 3.0f)).coerceAtLeast(20f)
                                 }
                             }
                             return@beforeHook
                         }
 
                         if (args[0] != null && (args[0] is GnssStatus || args[0].javaClass.name == "android.location.GnssStatus")) {
-                            val mockStatus = createMockGnssStatus(mockGps, selectedSatellites)
+                            val mockStatus = createMockGnssStatusFromStates(mockGps, states)
                             if (mockStatus != null) {
                                 args[0] = mockStatus
                             } else {
-                                Logger.error("onSvStatusChanged: createMockGnssStatus returned null")
+                                Logger.error("onSvStatusChanged: createMockGnssStatusFromStates returned null")
                             }
                             return@beforeHook
                         }
@@ -1062,6 +1181,11 @@ internal object LocationServiceHook: BaseLocationHook() {
 //    }
 
     private fun addLocationListenerInner(provider: String, listener: IInterface) {
+        val binder = listener.asBinder()
+        if (locationListeners.any { it.second.asBinder() == binder }) {
+            hookILocationListener(listener)
+            return
+        }
         val mDeathRecipient = object: IBinder.DeathRecipient {
             override fun binderDied() {}
             override fun binderDied(who: IBinder) {
@@ -1070,7 +1194,7 @@ internal object LocationServiceHook: BaseLocationHook() {
             }
         }
         runCatching {
-            listener.asBinder().linkToDeath(mDeathRecipient, 0)
+            binder.linkToDeath(mDeathRecipient, 0)
         }.onFailure {
             Logger.warn("linkToDeath failed for location listener", it)
         }
@@ -1086,51 +1210,67 @@ internal object LocationServiceHook: BaseLocationHook() {
         locationListeners.removeIf { it.second.asBinder() == binder }
     }
 
+    private fun dispatchLocationToListener(provider: String, listener: IInterface): Boolean {
+        val binder = listener.asBinder()
+        if (!binder.isBinderAlive) return false
+
+        var location = FakeLoc.lastLocation?.let { Location(it) }
+            ?: if (provider == "GnssBatch" || provider == "fused" || provider == "network") {
+                Location("gps")
+            } else {
+                Location(provider)
+            }
+        location.time = System.currentTimeMillis()
+        location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
+        location = injectLocation(location, realLocation = false)
+
+        var called = false
+        var error: Throwable? = null
+        kotlin.runCatching {
+            val locations = listOf(location)
+            val mOnLocationChanged = XposedHelpers.findMethodBestMatch(listener.javaClass, "onLocationChanged", locations, null)
+            XposedBridge.invokeOriginalMethod(mOnLocationChanged, listener, arrayOf(locations, null))
+            called = true
+        }.onFailure {
+            if (it is InvocationTargetException && it.targetException is DeadObjectException) {
+                return false
+            }
+            error = it
+        }
+
+        if (!called) runCatching {
+            val mOnLocationChanged = XposedHelpers.findMethodBestMatch(listener.javaClass, "onLocationChanged", location)
+            XposedBridge.invokeOriginalMethod(mOnLocationChanged, listener, arrayOf(location))
+            called = true
+        }.onFailure {
+            if (it is InvocationTargetException && it.targetException is DeadObjectException) {
+                return false
+            }
+            error = it
+        }
+
+        if (!called) {
+            Logger.error("callOnLocationChanged failed: " + error?.stackTraceToString())
+            Logger.error("The listener all methods: " + listener.javaClass.declaredMethods.joinToString { it.name })
+        }
+        return called
+    }
+
     fun callOnLocationChanged() {
+        lastLocationBroadcastElapsedMs = SystemClock.elapsedRealtime()
         if (FakeLoc.enableDebugLog) {
             Logger.debug("==> callOnLocationChanged: ${locationListeners.size}")
         }
         // GNSS 状态已由 GnssMockDaemon 按 1Hz 节奏独立上报，避免高频位置广播重复冲刷 GNSS 监听器
-        locationListeners.forEach { listenerWithProvider ->
-            val listener = listenerWithProvider.second
-            var location = FakeLoc.lastLocation?.let { Location(it) }
-                ?: if (listenerWithProvider.first == "GnssBatch") {
-                    Location("gps")
-                } else {
-                    Location(listenerWithProvider.first)
-                }
-            location.time = System.currentTimeMillis()
-            location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
-            location = injectLocation(location, realLocation = false)
-            var called = false
-            var error: Throwable? = null
-            kotlin.runCatching {
-                val locations = listOf(location)
-                val mOnLocationChanged = XposedHelpers.findMethodBestMatch(listener.javaClass, "onLocationChanged", locations, null)
-                XposedBridge.invokeOriginalMethod(mOnLocationChanged, listener, arrayOf(locations, null))
-                called = true
-            }.onFailure {
-                if (it is InvocationTargetException && it.targetException is DeadObjectException) {
-                    return@forEach
-                }
-                error = it
+        val deadBinders = mutableListOf<IBinder>()
+        locationListeners.forEach { (provider, listener) ->
+            val ok = dispatchLocationToListener(provider, listener)
+            if (!ok && !listener.asBinder().isBinderAlive) {
+                deadBinders.add(listener.asBinder())
             }
-
-            if (!called) runCatching {
-                val mOnLocationChanged = XposedHelpers.findMethodBestMatch(listener.javaClass, "onLocationChanged", location)
-                XposedBridge.invokeOriginalMethod(mOnLocationChanged, listener, arrayOf(location))
-                called = true
-            }.onFailure {
-                if (it is InvocationTargetException && it.targetException is DeadObjectException) {
-                    return@forEach
-                }
-                error = it
-            }
-
-            if (!called) {
-                Logger.error("callOnLocationChanged failed: " + error?.stackTraceToString())
-                Logger.error("The listener all methods: " + listener.javaClass.declaredMethods.joinToString { it.name })
-            }
+        }
+        if (deadBinders.isNotEmpty()) {
+            deadBinders.forEach { removeLocationListenerByBinder(it) }
         }
 
         if (FakeLoc.enableDebugLog) {

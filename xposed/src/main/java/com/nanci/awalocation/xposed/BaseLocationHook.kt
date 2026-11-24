@@ -52,7 +52,14 @@ abstract class BaseLocationHook: BaseDivineService() {
         }
 
         val location = Location(provider)
-        location.accuracy = if (FakeLoc.accuracy != 0.0f) FakeLoc.accuracy else originLocation.accuracy
+        val baseAccuracy = if (FakeLoc.accuracy > 0.0f) {
+            FakeLoc.accuracy
+        } else if (originLocation.hasAccuracy() && originLocation.accuracy > 0.0f) {
+            originLocation.accuracy
+        } else {
+            4.5f
+        }
+        location.accuracy = (baseAccuracy + Random.nextDouble(-0.4, 0.6).toFloat()).coerceAtLeast(1.0f)
         val jitterLat = FakeLoc.jitterLocation()
         location.latitude = jitterLat.first
         location.longitude = jitterLat.second
@@ -102,21 +109,31 @@ abstract class BaseLocationHook: BaseDivineService() {
             location.elapsedRealtimeUncertaintyNanos = originLocation.elapsedRealtimeUncertaintyNanos
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            location.verticalAccuracyMeters = originLocation.verticalAccuracyMeters
+            val originVAcc = if (originLocation.hasVerticalAccuracy()) originLocation.verticalAccuracyMeters else 0f
+            location.verticalAccuracyMeters = if (originVAcc in 0.5f..15.0f) {
+                originVAcc
+            } else {
+                Random.nextDouble(2.5, 5.5).toFloat()
+            }
         }
         location.extras = originLocation.extras?.let { Bundle(it) } ?: Bundle()
         location.extras?.putDouble("latlon", location.latitude + location.longitude)
-        location.extras?.putInt("satellites", Random.nextInt(8, 45))
-        location.extras?.putInt("maxCn0", Random.nextInt(30, 50))
-        location.extras?.putInt("meanCn0", Random.nextInt(20, 30))
+        val inUseSats = com.nanci.awalocation.xposed.hooks.LocationServiceHook.lastInUseSatelliteCount.coerceIn(14, 28)
+        location.extras?.putInt("satellites", inUseSats)
+        location.extras?.putInt("maxCn0", Random.nextInt(40, 48))
+        location.extras?.putInt("meanCn0", Random.nextInt(34, 41))
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             if (originLocation.hasMslAltitude()) {
                 location.mslAltitudeMeters = FakeLoc.altitude
             }
             if (originLocation.hasMslAltitudeAccuracy()) {
-                // 复制真实精度，不能把海拔本身当作“海拔精度”。
-                location.mslAltitudeAccuracyMeters = originLocation.mslAltitudeAccuracyMeters
+                val originMslAcc = originLocation.mslAltitudeAccuracyMeters
+                location.mslAltitudeAccuracyMeters = if (originMslAcc in 0.5f..15.0f) {
+                    originMslAcc
+                } else {
+                    Random.nextDouble(2.5, 5.5).toFloat()
+                }
             }
         }
         if (FakeLoc.hideMock) {

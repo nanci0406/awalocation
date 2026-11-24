@@ -176,6 +176,13 @@ object RemoteCommandHandler {
                 FakeLoc.accuracy = accuracy
                 FakeLoc.enable = true
 
+                if (FakeLoc.isSystemServerProcess) {
+                    LocationServiceHook.startLocationHeartbeatDaemon()
+                    if (FakeLoc.latitude != 0.0 || FakeLoc.longitude != 0.0) {
+                        LocationServiceHook.callOnLocationChanged()
+                    }
+                }
+
                 // 位置模拟不碰 native 传感器 Hook。步频/步态模拟由
                 // start_step_mock 单独启动，避免启动模拟时把 Dobby 和
                 // SensorService Hook 一起拉进 system_server。
@@ -314,21 +321,21 @@ object RemoteCommandHandler {
                 val mode = rely.getString("mode")
                 var newLat = rely.getDouble("lat", 0.0)
                 var newLon = rely.getDouble("lon", 0.0)
-                when(mode) {
+                val updated = when(mode) {
                     "+" -> {
                         newLat += FakeLoc.latitude
                         newLon += FakeLoc.longitude
-                        return updateCoordinate(newLat, newLon)
+                        updateCoordinate(newLat, newLon)
                     }
                     "-" -> {
                         newLat = FakeLoc.latitude - newLat
                         newLon = FakeLoc.longitude - newLon
-                        return updateCoordinate(newLat, newLon)
+                        updateCoordinate(newLat, newLon)
                     }
                     "*" -> {
                         newLat *= FakeLoc.latitude
                         newLon *= FakeLoc.longitude
-                        return updateCoordinate(newLat, newLon)
+                        updateCoordinate(newLat, newLon)
                     }
                     "/" -> {
                         if (newLat == 0.0 || newLon == 0.0) {
@@ -336,16 +343,20 @@ object RemoteCommandHandler {
                         }
                         newLat = FakeLoc.latitude / newLat
                         newLon = FakeLoc.longitude / newLon
-                        return updateCoordinate(newLat, newLon)
+                        updateCoordinate(newLat, newLon)
                     }
                     "=" -> {
-                        return updateCoordinate(newLat, newLon)
+                        updateCoordinate(newLat, newLon)
                     }
                     "random" -> {
-                        return updateCoordinate(Random.nextDouble(-90.0, 90.0), Random.nextDouble(-180.0, 180.0))
+                        updateCoordinate(Random.nextDouble(-90.0, 90.0), Random.nextDouble(-180.0, 180.0))
                     }
+                    else -> true
                 }
-                return true
+                if (updated && FakeLoc.enable && FakeLoc.isSystemServerProcess) {
+                    LocationServiceHook.callOnLocationChanged()
+                }
+                return updated
             }
             "put_config" -> {
                 val enable = rely.getBoolean("enable", FakeLoc.enable)

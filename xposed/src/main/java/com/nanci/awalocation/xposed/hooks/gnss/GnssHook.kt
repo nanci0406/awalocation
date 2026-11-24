@@ -5,6 +5,7 @@ import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import com.nanci.awalocation.xposed.BaseLocationHook
+import com.nanci.awalocation.xposed.hooks.LocationServiceHook
 import com.nanci.awalocation.xposed.hooks.blindhook.BlindHookLocation
 import com.nanci.awalocation.xposed.hooks.blindhook.BlindHookLocation.invoke
 import com.nanci.awalocation.xposed.utils.FakeLoc
@@ -22,7 +23,23 @@ object GnssHook: BaseLocationHook() {
     }
 
     private fun hookFrameworkGnss(classLoader: ClassLoader) {
-        val cGnssManagerService = XposedHelpers.findClassIfExists("com.android.server.location.GnssManagerService", classLoader) ?: return
+        // Android 12+ 包名迁移至 com.android.server.location.gnss.GnssManagerService
+        val cGnssManagerService =
+            XposedHelpers.findClassIfExists("com.android.server.location.gnss.GnssManagerService", classLoader)
+                ?: XposedHelpers.findClassIfExists("com.android.server.location.GnssManagerService", classLoader)
+
+        // 拦截 Android 12+ GnssStatusProvider 的真实硬件上报，防止室内 0 颗卫星覆盖模拟星图
+        XposedHelpers.findClassIfExists("com.android.server.location.gnss.GnssStatusProvider", classLoader)?.let { cGnssStatusProvider ->
+            cGnssStatusProvider.onceHookAllMethod("onReportSvStatus", beforeHook {
+                if (!FakeLoc.enableMockGnss || args.isEmpty()) return@beforeHook
+                val mockStatus = LocationServiceHook.buildCurrentMockGnssStatus()
+                if (mockStatus != null && args[0] is android.location.GnssStatus) {
+                    args[0] = mockStatus
+                }
+            })
+        }
+
+        if (cGnssManagerService == null) return
 
         val doNothingMethod = object: XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam?) {
@@ -134,6 +151,15 @@ object GnssHook: BaseLocationHook() {
                     val locations = args[0] as? Array<Location> ?: return@beforeHook
                     locations.forEachIndexed { index, location ->
                         locations[index] = injectLocation(location)
+                    }
+                }
+            })
+
+            cGnssNative.onceHookAllMethod("reportSvStatus", beforeHook {
+                if (!FakeLoc.enableMockGnss || args.isEmpty()) return@beforeHook
+                if (args[0] is android.location.GnssStatus) {
+                    LocationServiceHook.buildCurrentMockGnssStatus()?.let {
+                        args[0] = it
                     }
                 }
             })

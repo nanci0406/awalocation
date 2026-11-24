@@ -192,6 +192,7 @@ class Rocker(context: Context) : View.OnTouchListener {
     private fun playAuto(rockerView: RockerView) {
         val playButton = root.findViewById<AppCompatImageView>(R.id.auto_play)
         if (autoStatus) {
+            rockerView.reset()
             playButton.setImageResource(R.drawable.baseline_stop_24)
         } else {
             playButton.setImageResource(R.drawable.baseline_play_24)

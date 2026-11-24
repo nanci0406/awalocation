@@ -12,6 +12,7 @@ import com.nanci.awalocation.nmea.NMEA
 import com.nanci.awalocation.nmea.NmeaValue
 import java.util.Collections
 import java.util.WeakHashMap
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -19,8 +20,20 @@ abstract class BaseLocationHook: BaseDivineService() {
     companion object {
         private val injectedLocations: MutableSet<Location> =
             Collections.synchronizedSet(Collections.newSetFromMap(WeakHashMap()))
+        private val lastInjectedWallTimeMs = AtomicLong(0L)
         internal const val EXTRA_INJECTED_LAT = "awalocation.base_lat"
         internal const val EXTRA_INJECTED_LON = "awalocation.base_lon"
+
+        private fun monotonicWallTimeMs(): Long {
+            val now = System.currentTimeMillis()
+            while (true) {
+                val prev = lastInjectedWallTimeMs.get()
+                val next = if (now >= prev || prev - now > 5_000L) now else prev
+                if (lastInjectedWallTimeMs.compareAndSet(prev, next)) {
+                    return next
+                }
+            }
+        }
     }
 
     fun injectLocation(originLocation: Location, realLocation: Boolean = true): Location {
@@ -45,9 +58,12 @@ abstract class BaseLocationHook: BaseDivineService() {
         if (!FakeLoc.enable)
             return originLocation
 
-        // 仅当该 Location 已经注入过、非主动推送(realLocation=true)、且注入时的基准坐标与当前目标坐标一致时才跳过重复注入；
-        // 一旦路线移动更新了 FakeLoc.latitude/longitude，或属于主动推送(realLocation=false)，必须重新注入新坐标。
-        val matchesCurrentTarget = extras != null &&
+        // 仅当该 Location 是在同一事件帧内（<250ms）刚注入过、非主动推送(realLocation=true)、且基准坐标未变时才跳过重复注入；
+        // 若超过 250ms（如 getLastLocation 读取缓存）或路线坐标已推进，必须重新刷新时间戳、速度与微漂移。
+        val isFreshSameFrame = originLocation.elapsedRealtimeNanos > 0L &&
+            abs(SystemClock.elapsedRealtimeNanos() - originLocation.elapsedRealtimeNanos) < 250_000_000L
+        val matchesCurrentTarget = isFreshSameFrame &&
+            extras != null &&
             extras.containsKey(EXTRA_INJECTED_LAT) &&
             extras.containsKey(EXTRA_INJECTED_LON) &&
             abs(extras.getDouble(EXTRA_INJECTED_LAT, Double.NaN) - FakeLoc.latitude) < 1e-7 &&
@@ -73,21 +89,21 @@ abstract class BaseLocationHook: BaseDivineService() {
         location.accuracy = (baseAccuracy + Random.nextDouble(-0.4, 0.6).toFloat()).coerceAtLeast(1.0f)
         val targetLat = FakeLoc.latitude
         val targetLon = FakeLoc.longitude
-        val jitterLat = FakeLoc.jitterLocation(lat = targetLat, lon = targetLon)
-        location.latitude = jitterLat.first
-        location.longitude = jitterLat.second
+        val (jitteredLat, jitteredLon) = FakeLoc.jitterLocation(lat = targetLat, lon = targetLon)
+        location.latitude = jitteredLat
+        location.longitude = jitteredLon
         location.altitude = FakeLoc.altitude
-        if (FakeLoc.speed > 0.0) {
-            val maxAmp = (FakeLoc.speed * 0.05).coerceAtMost(FakeLoc.speedAmplitude.coerceAtLeast(0.0))
-            val speedAmp = if (maxAmp > 0.0) Random.nextDouble(-maxAmp, maxAmp) else 0.0
-            location.speed = (FakeLoc.speed + speedAmp).toFloat().coerceAtLeast(0.01f)
+
+        val currentReportedSpeed = FakeLoc.reportedSpeed()
+        if (currentReportedSpeed > 0.0f) {
+            location.speed = currentReportedSpeed
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                location.speedAccuracyMetersPerSecond = 0.25f
+                location.speedAccuracyMetersPerSecond = 0.18f
             }
         } else {
             location.speed = 0.0f
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                location.speedAccuracyMetersPerSecond = 0.0f
+                location.speedAccuracyMetersPerSecond = 0.05f
             }
         }
 
@@ -95,7 +111,8 @@ abstract class BaseLocationHook: BaseDivineService() {
             location.altitude = 80.0
         }
 
-        location.time = if (originLocation.time > 0L) originLocation.time else System.currentTimeMillis()
+        // 统一使用当前单调系统时钟与启动时钟，防止 getLastLocation 或延迟硬件回调将新坐标打上旧时间戳造成瞬时配速畸变
+        location.time = monotonicWallTimeMs()
 
         // final addition of zero is to remove -0 results. while these are technically within the
         // range [0, 360) according to IEEE semantics, this eliminates possible user confusion.
@@ -113,11 +130,7 @@ abstract class BaseLocationHook: BaseDivineService() {
             location.isMock = false
         }
 
-        location.elapsedRealtimeNanos = if (originLocation.elapsedRealtimeNanos > 0L) {
-            originLocation.elapsedRealtimeNanos
-        } else {
-            SystemClock.elapsedRealtimeNanos()
-        }
+        location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             location.elapsedRealtimeUncertaintyNanos = originLocation.elapsedRealtimeUncertaintyNanos
         }
@@ -264,10 +277,25 @@ abstract class BaseLocationHook: BaseDivineService() {
                     value.latitude = nmeaCoordinate(FakeLoc.latitude)
                     value.longitude = nmeaCoordinate(FakeLoc.longitude)
 
+                    val speedMps = FakeLoc.reportedSpeed().toDouble()
+                    value.speedKnots = speedMps * 1.943844
+                    var course = FakeLoc.bearing % 360.0
+                    if (course < 0.0) course += 360.0
+                    value.trackAngle = course
+
                     return nmea.toNmeaString()
                 }
                 is NmeaValue.VTG -> {
-                    return null
+                    if (value.mode == "N") {
+                        return null
+                    }
+                    val speedMps = FakeLoc.reportedSpeed().toDouble()
+                    var course = FakeLoc.bearing % 360.0
+                    if (course < 0.0) course += 360.0
+                    value.trueTrack = course
+                    value.groundSpeedKnots = speedMps * 1.943844
+                    value.groundSpeedKph = speedMps * 3.6
+                    return nmea.toNmeaString()
                 }
             }
         }.onFailure {

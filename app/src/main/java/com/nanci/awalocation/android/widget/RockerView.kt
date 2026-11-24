@@ -375,7 +375,9 @@ class RockerView(context: Context, attributeSet: AttributeSet) : View(context, a
     fun reset() {
         isPositionInitialized = false
         mRockerPosition = Point()
-        isLocked.set(false)
+        if (isLocked.getAndSet(false)) {
+            listener?.onLockChanged(false)
+        }
         lockRunnable?.let { handler.removeCallbacks(it) }
         lockRunnable = null
         invalidate()

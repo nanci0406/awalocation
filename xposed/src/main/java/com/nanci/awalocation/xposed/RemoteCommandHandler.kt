@@ -174,6 +174,7 @@ object RemoteCommandHandler {
                 FakeLoc.speed = speed
                 FakeLoc.altitude = altitude
                 FakeLoc.accuracy = accuracy
+                FakeLoc.resetMotionAndJitter()
                 FakeLoc.enable = true
 
                 if (FakeLoc.isSystemServerProcess) {
@@ -191,6 +192,7 @@ object RemoteCommandHandler {
             "stop" -> {
                 FakeLoc.enable = false
                 FakeLoc.hasBearings = false
+                FakeLoc.resetMotionAndJitter()
                 if (Dobby.isLoaded) {
                     Dobby.setStatus(false)
                     Dobby.setMocking(false)
@@ -313,6 +315,7 @@ object RemoteCommandHandler {
                 }
                 FakeLoc.bearing = bearing
                 FakeLoc.hasBearings = true
+                FakeLoc.markMoved()
                 return updateCoordinate(newLoc.first, newLoc.second).also {
                     if (FakeLoc.isSystemServerProcess) LocationServiceHook.callOnLocationChanged()
                 }
@@ -321,6 +324,11 @@ object RemoteCommandHandler {
                 val mode = rely.getString("mode")
                 var newLat = rely.getDouble("lat", 0.0)
                 var newLon = rely.getDouble("lon", 0.0)
+                if (rely.containsKey("bearing")) {
+                    FakeLoc.bearing = rely.getDouble("bearing", FakeLoc.bearing)
+                    FakeLoc.hasBearings = true
+                }
+                val isMovingStep = rely.getBoolean("moving", false)
                 val updated = when(mode) {
                     "+" -> {
                         newLat += FakeLoc.latitude
@@ -353,8 +361,15 @@ object RemoteCommandHandler {
                     }
                     else -> true
                 }
-                if (updated && FakeLoc.enable && FakeLoc.isSystemServerProcess) {
-                    LocationServiceHook.callOnLocationChanged()
+                if (updated) {
+                    if (isMovingStep) {
+                        FakeLoc.markMoved()
+                    } else if (mode == "=") {
+                        FakeLoc.resetMotionAndJitter()
+                    }
+                    if (FakeLoc.enable && FakeLoc.isSystemServerProcess) {
+                        LocationServiceHook.callOnLocationChanged()
+                    }
                 }
                 return updated
             }
@@ -443,7 +458,11 @@ object RemoteCommandHandler {
             }
             "broadcast_location" -> {
                 if (FakeLoc.isSystemServerProcess) {
-                    LocationServiceHook.callOnLocationChanged()
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    // 若刚刚已通过 move / update_location 完成过主动广播，跳过紧邻重复广播防止并发冲刷监听器
+                    if (now - LocationServiceHook.lastLocationBroadcastElapsedMs >= 60L) {
+                        LocationServiceHook.callOnLocationChanged()
+                    }
                 }
                 return true
             }

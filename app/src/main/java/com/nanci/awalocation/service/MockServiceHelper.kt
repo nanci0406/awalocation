@@ -376,14 +376,37 @@ object MockServiceHelper {
             Log.d("MockServiceHelper", "move: distance=$distance, bearing=$bearing")
         }
 
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also {
+            if (it) FakeLoc.markMoved()
+        }
     }
 
-    fun setLocation(locationManager: LocationManager, lat: Double, lon: Double): Boolean {
-        return updateLocation(locationManager, lat, lon, "=")
+    fun setLocation(
+        locationManager: LocationManager,
+        lat: Double,
+        lon: Double,
+        bearing: Double? = null,
+    ): Boolean {
+        return updateLocation(locationManager, lat, lon, "=", bearing = bearing, moving = false)
     }
 
-    fun updateLocation(locationManager: LocationManager, lat: Double, lon: Double, mode: String): Boolean {
+    fun stepRouteLocation(
+        locationManager: LocationManager,
+        lat: Double,
+        lon: Double,
+        bearing: Double,
+    ): Boolean {
+        return updateLocation(locationManager, lat, lon, "=", bearing = bearing, moving = true)
+    }
+
+    fun updateLocation(
+        locationManager: LocationManager,
+        lat: Double,
+        lon: Double,
+        mode: String,
+        bearing: Double? = null,
+        moving: Boolean = false,
+    ): Boolean {
         if (!::randomKey.isInitialized) {
             return false
         }
@@ -392,7 +415,29 @@ object MockServiceHelper {
         rely.putDouble("lat", lat)
         rely.putDouble("lon", lon)
         rely.putString("mode", mode)
-        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)
+        if (bearing != null) {
+            rely.putDouble("bearing", bearing)
+        }
+        if (moving) {
+            rely.putBoolean("moving", true)
+        }
+        return locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely).also { ok ->
+            if (ok) {
+                if (mode == "=" && lat in -90.0..90.0 && lon in -180.0..180.0) {
+                    FakeLoc.latitude = lat
+                    FakeLoc.longitude = lon
+                }
+                if (bearing != null) {
+                    FakeLoc.bearing = bearing
+                    FakeLoc.hasBearings = true
+                }
+                if (moving) {
+                    FakeLoc.markMoved()
+                } else if (mode == "=") {
+                    FakeLoc.resetMotionAndJitter()
+                }
+            }
+        }
     }
 
     fun loadLibrary(locationManager: LocationManager, path: String): String? {
@@ -468,7 +513,10 @@ object MockServiceHelper {
             Log.d("MockServiceHelper","loopBoardcast: Start")
             while(isRunning){
                 try {
-                    broadcastLocation(locationManager)
+                    // 主动移动（路线/摇杆）期间已按周期推送位置，不再叠加重复广播，防止高频并发推点拉高配速
+                    if (!FakeLoc.isActivelyMoving()) {
+                        broadcastLocation(locationManager)
+                    }
                     Thread.sleep(appContext.reportDuration.toLong().coerceAtLeast(20L))
                 }catch (e:InterruptedException){
                     if (FakeLoc.enableDebugLog) {

@@ -333,13 +333,24 @@ object StepSensorHook : BaseDivineService() {
     }
 
     /**
-     * 手动指定步频（>0）优先；否则按模拟速度自动推算：步频 = 速度 / 平均步幅(0.762米) * 60。
-     * 速度不大于 0 视为未移动，不产生步频。
+     * 手动指定步频（>0）优先；否则根据人体步行/跑步生物力学步幅随速度增长规律自动推算，
+     * 避免固定 0.762m 步幅导致慢跑（10~15 km/h）时步频飙到 220~240 步/分使融合配速异常偏快。
      */
     private fun resolveCadence(): Float {
-        FakeLoc.stepCadence.takeIf { it > 0f }?.let { return it }
-        if (FakeLoc.speed <= 0.0) return 0f
-        return (FakeLoc.speed / 0.762 * 60.0).toFloat().coerceIn(40f, 240f)
+        return calculateAutoCadence(FakeLoc.speed, FakeLoc.stepCadence)
+    }
+
+    internal fun calculateAutoCadence(speedMps: Double, configuredCadence: Float = 0f): Float {
+        if (configuredCadence > 0f) return configuredCadence
+        if (speedMps <= 0.05) return 0f
+        val strideMeters = if (speedMps <= 1.8) {
+            // 慢走 ~ 快走：步幅约 0.55m ~ 0.82m（5 km/h 时约 110 步/分）
+            (0.55 + 0.15 * speedMps).coerceIn(0.55, 0.82)
+        } else {
+            // 慢跑 ~ 快跑：步幅随速度自然拉开（10 km/h 时约 157 步/分，12 km/h 时约 173 步/分，15 km/h 时约 194 步/分）
+            (0.62 + 0.16 * speedMps).coerceIn(0.82, 1.85)
+        }
+        return ((speedMps / strideMeters) * 60.0).toFloat().coerceIn(15f, 220f)
     }
 
     private fun createSensorEvent(sensor: Sensor): SensorEvent? {

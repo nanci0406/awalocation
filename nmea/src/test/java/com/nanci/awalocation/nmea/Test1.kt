@@ -46,6 +46,29 @@ class Test1 {
         assertEquals(11353.634, longitude, 1e-4)
     }
 
+    @Test
+    fun rmcAndVtgSpeedMutationRecomputesValidChecksum() {
+        val rmc = NMEA.valueOf("\$GNRMC,083559.00,A,4717.11437,N,00833.91522,E,0.004,77.52,091202,,,A,V*33")
+        val rmcVal = rmc.value as NmeaValue.RMC
+        rmcVal.speedKnots = 5.4
+        rmcVal.trackAngle = 135.0
+        val encodedRmc = rmc.toNmeaString()
+        val reparsedRmc = NMEA.valueOf(encodedRmc).value as NmeaValue.RMC
+        assertEquals(5.4, reparsedRmc.speedKnots ?: -1.0, 1e-3)
+        assertEquals(135.0, reparsedRmc.trackAngle ?: -1.0, 1e-3)
+
+        val vtg = NMEA.valueOf("\$GNVTG,77.52,T,,M,0.004,N,0.007,K,A*11")
+        val vtgVal = vtg.value as NmeaValue.VTG
+        vtgVal.trueTrack = 135.0
+        vtgVal.groundSpeedKnots = 5.4
+        vtgVal.groundSpeedKph = 10.0
+        val encodedVtg = vtg.toNmeaString()
+        val reparsedVtg = NMEA.valueOf(encodedVtg).value as NmeaValue.VTG
+        assertEquals(135.0, reparsedVtg.trueTrack ?: -1.0, 1e-3)
+        assertEquals(5.4, reparsedVtg.groundSpeedKnots ?: -1.0, 1e-3)
+        assertEquals(10.0, reparsedVtg.groundSpeedKph ?: -1.0, 1e-3)
+    }
+
     companion object {
         val HUNDRED = BigDecimal(100)
         val SIXTY = BigDecimal(60)

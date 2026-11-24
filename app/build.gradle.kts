@@ -199,6 +199,8 @@ dependencies {
     implementation(libs.amap.sdk)
 
     implementation(libs.geotools)
+
+    testImplementation(libs.junit)
 }
 
 fun getGitCommitCount(): Int {

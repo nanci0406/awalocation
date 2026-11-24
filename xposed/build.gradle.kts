@@ -53,4 +53,6 @@ dependencies {
 
     //noinspection UseTomlInstead
     implementation("io.github.vvb2060.ndk:dobby:1.2")
+
+    testImplementation(libs.junit)
 }

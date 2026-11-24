@@ -191,7 +191,7 @@ internal object LocationServiceHook: BaseLocationHook() {
     private val isLocationHeartbeatRunning = AtomicBoolean(false)
 
     @Volatile var lastInUseSatelliteCount: Int = 20
-    @Volatile private var lastLocationBroadcastElapsedMs: Long = 0L
+    @Volatile internal var lastLocationBroadcastElapsedMs: Long = 0L
 
     private data class ActiveSatelliteState(
         val sat: MockSatellite,

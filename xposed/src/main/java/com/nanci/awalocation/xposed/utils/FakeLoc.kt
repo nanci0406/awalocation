@@ -4,12 +4,25 @@ import android.location.Location
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
 
 object FakeLoc {
+    private const val WGS84_A = 6378137.0
+    private const val WGS84_E2 = 0.00669437999014
+    private const val ACTIVE_MOTION_TIMEOUT_NS = 2_500_000_000L
+
+    private val jitterLock = Any()
+    private var driftNorthMeters = 0.0
+    private var driftEastMeters = 0.0
+    private var lastJitterUpdateNs = 0L
+    private var speedDriftRatio = 0.0
+    private var lastSpeedUpdateNs = 0L
+    @Volatile private var lastMoveNanoTime = 0L
+
     /**
      * 是否允许打印日志
      */
@@ -115,11 +128,11 @@ object FakeLoc {
 
     @Volatile var speed = 5.0 / 3.6
 
-    var speedAmplitude = 1.0
+    @Volatile var speedAmplitude = 1.0
 
     @Volatile var hasBearings = false
 
-    var bearing = 0.0
+    @Volatile var bearing = 0.0
         get() {
             if (hasBearings) {
                 return field
@@ -142,6 +155,56 @@ object FakeLoc {
             }
         }
 
+    fun markMoved(nowNs: Long = System.nanoTime()) {
+        lastMoveNanoTime = if (nowNs == 0L) 1L else nowNs
+    }
+
+    fun resetMotionAndJitter() {
+        lastMoveNanoTime = 0L
+        synchronized(jitterLock) {
+            driftNorthMeters = 0.0
+            driftEastMeters = 0.0
+            lastJitterUpdateNs = 0L
+            speedDriftRatio = 0.0
+            lastSpeedUpdateNs = 0L
+        }
+    }
+
+    fun isActivelyMoving(nowNs: Long = System.nanoTime()): Boolean {
+        val last = lastMoveNanoTime
+        if (last == 0L) return false
+        val elapsed = nowNs - last
+        return elapsed in 0L..ACTIVE_MOTION_TIMEOUT_NS
+    }
+
+    /**
+     * 返回注入到 Location / NMEA 的瞬时速度（m/s）：
+     * - 静止选点或路线暂停/结束时返回 0，避免坐标不动却上报正速度触发异常检测；
+     * - 路线或摇杆移动中使用时间相关低频微幅呼吸（均值严格等于 [speed]），避免白噪声速度乱跳。
+     */
+    fun reportedSpeed(nowNs: Long = System.nanoTime()): Float {
+        val base = speed
+        if (base <= 0.0 || !isActivelyMoving(nowNs)) return 0.0f
+        if (speedAmplitude <= 0.0) return base.toFloat()
+
+        synchronized(jitterLock) {
+            val maxRatio = (0.025 * speedAmplitude.coerceIn(0.0, 2.0)).coerceAtMost(0.04)
+            if (lastSpeedUpdateNs == 0L) {
+                lastSpeedUpdateNs = nowNs
+            } else {
+                val rawDt = (nowNs - lastSpeedUpdateNs) / 1_000_000_000.0
+                if (rawDt >= 0.05 || rawDt < 0.0) {
+                    val dt = rawDt.coerceIn(0.0, 1.0)
+                    lastSpeedUpdateNs = nowNs
+                    val decay = (dt / 8.0).coerceAtMost(0.5)
+                    val step = Random.nextDouble(-1.0, 1.0) * maxRatio * 0.25 * dt.coerceAtLeast(0.05)
+                    speedDriftRatio = (speedDriftRatio * (1.0 - decay) + step).coerceIn(-maxRatio, maxRatio)
+                }
+            }
+            return (base * (1.0 + speedDriftRatio)).toFloat().coerceAtLeast(0.01f)
+        }
+    }
+
     fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val radius = 6371000.0
         val phi1 = Math.toRadians(lat1)
@@ -153,40 +216,105 @@ object FakeLoc {
         return radius * c
     }
 
-    fun jitterLocation(lat: Double = latitude, lon: Double = longitude, n: Double = -1.0, angle: Double = bearing): Pair<Double, Double> {
-        val maxJitter = accuracy.toDouble()
-        val distance = when {
-            n >= 0.0 -> n
-            // 连续轨迹下只施加温和微抖动（<= 0.8m），避免按 accuracy 全半径乱跳把起点移动淹没在噪声圈里
-            maxJitter > 0.0 -> Random.nextDouble(0.0, (maxJitter * 0.12).coerceAtMost(0.8))
-            else -> 0.0
+    private fun offsetByMeters(lat: Double, lon: Double, northMeters: Double, eastMeters: Double): Pair<Double, Double> {
+        if (northMeters == 0.0 && eastMeters == 0.0) return Pair(lat, lon)
+        val clampedLat = lat.coerceIn(-89.999999, 89.999999)
+        val latRad = Math.toRadians(clampedLat)
+        val sinLat = sin(latRad)
+        val cosLat = cos(latRad).coerceAtLeast(1e-7)
+        val w = sqrt(1.0 - WGS84_E2 * sinLat * sinLat)
+        val meridionalRadius = WGS84_A * (1.0 - WGS84_E2) / (w * w * w)
+        val primeVerticalRadius = WGS84_A / w
+
+        val newLat = (lat + Math.toDegrees(northMeters / meridionalRadius)).coerceIn(-90.0, 90.0)
+        var newLon = lon + Math.toDegrees(eastMeters / (primeVerticalRadius * cosLat))
+        if (newLon > 180.0) newLon -= 360.0 else if (newLon < -180.0) newLon += 360.0
+        return Pair(newLat, newLon)
+    }
+
+    /**
+     * 时间相关平滑微漂移（Ornstein-Uhlenbeck 低通随机游走）：
+     * - 替代原先每帧 360° 独立白噪声跳变，彻底消除 10Hz 高频上报下的「之」字锯齿折线里程膨胀（配速越跑越快）；
+     * - 同一时刻（<40ms）多路监听器/Hook 共享同一偏移，保证 GPS / Fused / getLastLocation 坐标一致。
+     */
+    fun jitterLocation(
+        lat: Double = latitude,
+        lon: Double = longitude,
+        n: Double = -1.0,
+        angle: Double = bearing,
+        nowNs: Long = System.nanoTime(),
+    ): Pair<Double, Double> {
+        if (n >= 0.0) {
+            if (n <= 0.0) return Pair(lat, lon)
+            val jitterAngle = Math.toRadians((angle + Random.nextDouble(-180.0, 180.0) + 360.0) % 360.0)
+            return offsetByMeters(lat, lon, n * cos(jitterAngle), n * sin(jitterAngle))
         }
 
-        // accuracy 为 0 时表示不添加抖动，避免 Random.nextDouble(0.0, 0.0) 抛异常。
-        if (distance <= 0.0) {
+        val maxAccuracy = accuracy.toDouble()
+        if (maxAccuracy <= 0.0) {
             return Pair(lat, lon)
         }
 
-        val earthRadius = 6371000.0
-        val radiusInDegrees = distance / earthRadius * (180 / PI)
+        val maxRadius = (maxAccuracy * 0.10).coerceAtMost(0.45)
+        val moving = isActivelyMoving(nowNs)
+        val currentSpeed = speed
 
-        val jitterAngle = (angle + Random.nextDouble(-180.0, 180.0) + 360.0) % 360.0
+        val (northOffset, eastOffset) = synchronized(jitterLock) {
+            if (lastJitterUpdateNs == 0L) {
+                lastJitterUpdateNs = nowNs
+                0.0 to 0.0
+            } else {
+                val rawDt = (nowNs - lastJitterUpdateNs) / 1_000_000_000.0
+                if (rawDt in 0.0..0.04) {
+                    driftNorthMeters to driftEastMeters
+                } else {
+                    val dt = rawDt.coerceIn(0.0, 1.0)
+                    lastJitterUpdateNs = nowNs
+                    // 将漂移速率严格限制在前进速度的 1.2% 以内（最高 3.5cm/s），确保折线累计误差 < 0.05%
+                    val maxDriftSpeed = if (moving && currentSpeed > 0.0) {
+                        (currentSpeed * 0.012).coerceIn(0.004, 0.035)
+                    } else {
+                        0.012
+                    }
+                    val stepBudget = maxDriftSpeed * dt
+                    val decay = (dt / 15.0).coerceAtMost(0.4)
+                    val theta = Random.nextDouble(0.0, 2.0 * PI)
+                    val randomStep = Random.nextDouble(0.3, 1.0) * stepBudget
 
-        val newLat = lat + radiusInDegrees * cos(Math.toRadians(jitterAngle))
-        val newLon = lon + radiusInDegrees * sin(Math.toRadians(jitterAngle)) / cos(Math.toRadians(lat))
+                    var candN = driftNorthMeters * (1.0 - decay) + randomStep * cos(theta)
+                    var candE = driftEastMeters * (1.0 - decay) + randomStep * sin(theta)
 
-        return Pair(newLat, newLon)
+                    val deltaN = candN - driftNorthMeters
+                    val deltaE = candE - driftEastMeters
+                    val deltaNorm = hypot(deltaN, deltaE)
+                    val maxAllowedDelta = stepBudget * 1.2
+                    if (deltaNorm > maxAllowedDelta && deltaNorm > 0.0) {
+                        val scale = maxAllowedDelta / deltaNorm
+                        candN = driftNorthMeters + deltaN * scale
+                        candE = driftEastMeters + deltaE * scale
+                    }
+
+                    val norm = hypot(candN, candE)
+                    if (norm > maxRadius && norm > 0.0) {
+                        val scale = maxRadius / norm
+                        candN *= scale
+                        candE *= scale
+                    }
+
+                    driftNorthMeters = candN
+                    driftEastMeters = candE
+                    driftNorthMeters to driftEastMeters
+                }
+            }
+        }
+
+        return offsetByMeters(lat, lon, northOffset, eastOffset)
     }
 
     fun moveLocation(lat: Double = latitude, lon: Double = longitude, n: Double, angle: Double = bearing): Pair<Double, Double> {
-        val earthRadius = 6371000.0
-        val radiusInDegrees = n / earthRadius * (180 / PI)
-        val newLat = lat + radiusInDegrees * cos(Math.toRadians(angle))
-        val newLon = lon + radiusInDegrees * sin(Math.toRadians(angle)) / cos(Math.toRadians(lat))
-        return Pair(newLat, newLon)
+        val angleRad = Math.toRadians(angle)
+        return offsetByMeters(lat, lon, n * cos(angleRad), n * sin(angleRad))
     }
-
-
 
     fun calculateBearing(latA: Double, lonA: Double, latB: Double, lonB: Double): Double {
         val lat1 = Math.toRadians(latA)

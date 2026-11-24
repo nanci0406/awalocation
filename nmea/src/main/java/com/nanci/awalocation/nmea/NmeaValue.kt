@@ -154,8 +154,8 @@ sealed class NmeaValue (
         var latitudeHemisphere: String?,
         var longitude: Double?,
         var longitudeHemisphere: String?,
-        val speedKnots: Double?,
-        val trackAngle: Double?,
+        var speedKnots: Double?,
+        var trackAngle: Double?,
         val date: String?,
         val magneticVariation: Double?,
         val magneticVariationDirection: String,
@@ -181,11 +181,11 @@ sealed class NmeaValue (
     }
 
     data class VTG(
-        val trueTrack: Double?,
+        var trueTrack: Double?,
         val magneticTrack: Double?,
-        val groundSpeedKnots: Double?,
+        var groundSpeedKnots: Double?,
         val groundSpeedUnit: String,
-        val groundSpeedKph: Double?,
+        var groundSpeedKph: Double?,
         val groundSpeedKphUnit: String,
         val trueTrackMode: String,
         val magneticTrackMode: String,

@@ -114,7 +114,7 @@ class RouteMockFragment : Fragment() {
             renderTargetRoute(currentRoute)
             if (mockServiceViewModel.selectedRoute == null) {
                 mockServiceViewModel.selectedRoute = currentRoute
-                mockServiceViewModel.routeStage = 0
+                mockServiceViewModel.resetRouteProgress()
             }
         } else {
             renderEmptyTargetRoute()
@@ -311,7 +311,8 @@ class RouteMockFragment : Fragment() {
 
             button.isClickable = false
             try {
-                mockServiceViewModel.routeStage = 0
+                mockServiceViewModel.resetRouteProgress()
+                val initialBearing = RouteStepper.initialBearing(selectedRoute.route, 0.0)
                 val started = withContext(Dispatchers.IO) {
                     if (!MockServiceHelper.tryOpenMock(lm, speed, altitude, accuracy)) {
                         showToast("模拟服务启动失败")
@@ -320,7 +321,7 @@ class RouteMockFragment : Fragment() {
                     mockServiceViewModel.refreshMockState()
 
                     val first = selectedRoute.route[0]
-                    if (!MockServiceHelper.setLocation(lm, first.first, first.second)) {
+                    if (!MockServiceHelper.setLocation(lm, first.first, first.second, initialBearing)) {
                         showToast("更新位置失败")
                         return@withContext false
                     }
@@ -407,21 +408,23 @@ class RouteMockFragment : Fragment() {
                 renderTargetRoute(route)
                 binding.mockLocationCard.animateScalePop(peakScale = 1.02f, durationMs = 200L)
                 mockServiceViewModel.selectedRoute = route
-                mockServiceViewModel.routeStage = 0
+                mockServiceViewModel.resetRouteProgress()
                 requireContext().selectRoute = route
 
                 val lm = mockServiceViewModel.locationManager
                 if (lm != null && MockServiceHelper.isMockStart(lm) && route.route.isNotEmpty()) {
                     viewLifecycleOwner.lifecycleScope.launch {
                         val first = route.route[0]
+                        val initialBearing = RouteStepper.initialBearing(route.route, 0.0)
                         val updated = withContext(Dispatchers.IO) {
-                            MockServiceHelper.setLocation(lm, first.first, first.second)
+                            MockServiceHelper.setLocation(lm, first.first, first.second, initialBearing)
                         }
                         if (updated) {
                             if (route.route.size >= 2 && requireContext().speed > 0.0) {
                                 mockServiceViewModel.startRoutePlayback()
                                 Toast.makeText(requireContext(), "已切换路线并开始移动", Toast.LENGTH_SHORT).show()
                             } else {
+                                mockServiceViewModel.stopRoutePlayback(resetStage = true)
                                 Toast.makeText(requireContext(), "已切换至路线起点", Toast.LENGTH_SHORT).show()
                             }
                         } else {

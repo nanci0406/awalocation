@@ -1214,12 +1214,18 @@ internal object LocationServiceHook: BaseLocationHook() {
         val binder = listener.asBinder()
         if (!binder.isBinderAlive) return false
 
-        var location = FakeLoc.lastLocation?.let { Location(it) }
-            ?: if (provider == "GnssBatch" || provider == "fused" || provider == "network") {
-                Location("gps")
-            } else {
-                Location(provider)
+        val normalizedProvider = if (provider == "GnssBatch" || provider == "fused" || provider == "network") {
+            "gps"
+        } else {
+            provider
+        }
+        var location = FakeLoc.lastLocation?.let { base ->
+            Location(base).apply {
+                extras?.remove("latlon")
+                extras?.remove(EXTRA_INJECTED_LAT)
+                extras?.remove(EXTRA_INJECTED_LON)
             }
+        } ?: Location(normalizedProvider)
         location.time = System.currentTimeMillis()
         location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
         location = injectLocation(location, realLocation = false)

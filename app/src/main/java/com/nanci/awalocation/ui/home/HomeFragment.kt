@@ -992,6 +992,7 @@ class HomeFragment : Fragment() {
         binding.btnMockHere.isEnabled = false
         viewLifecycleOwner.lifecycleScope.launch {
             try {
+                mockServiceViewModel.stopRoutePlayback(resetStage = true)
                 val context = requireContext()
                 val speed = context.speed
                 val altitude = context.altitude
@@ -1055,9 +1056,7 @@ class HomeFragment : Fragment() {
                     MockServiceHelper.tryCloseMock(lm)
                 }
                 if (closed) {
-                    mockServiceViewModel.rocker.autoStatus = false
-                    mockServiceViewModel.routeMockCoroutine.pause()
-                    mockServiceViewModel.routeStage = 0
+                    mockServiceViewModel.stopRoutePlayback(resetStage = true)
                     if (mockServiceViewModel.rocker.isStart) {
                         mockServiceViewModel.rocker.hide()
                         mockServiceViewModel.rockerCoroutineController.pause()

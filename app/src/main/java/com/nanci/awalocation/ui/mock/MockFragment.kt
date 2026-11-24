@@ -329,6 +329,7 @@ class MockFragment : Fragment() {
 
             button.isClickable = false
             try {
+                mockServiceViewModel.stopRoutePlayback(resetStage = true)
                 withContext(Dispatchers.IO) {
                     if (MockServiceHelper.tryOpenMock(lm, speed, altitude, accuracy)) {
                         mockServiceViewModel.refreshMockState()
@@ -368,6 +369,7 @@ class MockFragment : Fragment() {
         lifecycleScope.launch {
             button.isClickable = false
             try {
+                mockServiceViewModel.stopRoutePlayback(resetStage = true)
                 val isClosed = withContext(Dispatchers.IO) {
                     if (!MockServiceHelper.isMockStart(lm)) {
                         showToast("模拟服务未启动")

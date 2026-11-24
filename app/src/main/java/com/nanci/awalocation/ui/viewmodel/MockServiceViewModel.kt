@@ -285,6 +285,25 @@ class MockServiceViewModel : ViewModel() {
         })
     }
 
+    fun startRoutePlayback() {
+        val appCtx = runCatching { Awalocation.appContext }.getOrNull()
+        routeMockCoroutine.resume()
+        if (::rocker.isInitialized) {
+            rocker.autoStatus = true
+        }
+        appCtx?.let { MockKeepAliveService.start(it, isRoute = true) }
+    }
+
+    fun stopRoutePlayback(resetStage: Boolean = true) {
+        routeMockCoroutine.pause()
+        if (::rocker.isInitialized) {
+            rocker.autoStatus = false
+        }
+        if (resetStage) {
+            routeStage = 0
+        }
+    }
+
     fun isServiceStart(): Boolean {
         return locationManager != null && MockServiceHelper.isServiceInit() && MockServiceHelper.isMockStart(
             locationManager!!

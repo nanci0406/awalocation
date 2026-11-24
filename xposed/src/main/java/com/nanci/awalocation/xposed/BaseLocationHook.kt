@@ -19,10 +19,17 @@ abstract class BaseLocationHook: BaseDivineService() {
     companion object {
         private val injectedLocations: MutableSet<Location> =
             Collections.synchronizedSet(Collections.newSetFromMap(WeakHashMap()))
+        internal const val EXTRA_INJECTED_LAT = "awalocation.base_lat"
+        internal const val EXTRA_INJECTED_LON = "awalocation.base_lon"
     }
 
     fun injectLocation(originLocation: Location, realLocation: Boolean = true): Location {
-        if (realLocation) {
+        val extras = originLocation.extras
+        val hasInjectedTag = injectedLocations.contains(originLocation) ||
+            (extras?.containsKey("latlon") == true &&
+                extras.getDouble("latlon", Double.NaN) == originLocation.latitude + originLocation.longitude)
+
+        if (realLocation && !hasInjectedTag) {
             if (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     originLocation.provider == LocationManager.GPS_PROVIDER && originLocation.isComplete
                 } else {
@@ -31,17 +38,21 @@ abstract class BaseLocationHook: BaseDivineService() {
             ) {
                 FakeLoc.lastLocation = originLocation
             }
-        } else {
+        } else if (!realLocation) {
             originLocation.altitude = FakeLoc.altitude
         }
 
         if (!FakeLoc.enable)
             return originLocation
 
-        val alreadyInjected = injectedLocations.contains(originLocation) ||
-            (originLocation.extras?.containsKey("latlon") == true &&
-                originLocation.extras?.getDouble("latlon", Double.NaN) == originLocation.latitude + originLocation.longitude)
-        if (alreadyInjected) {
+        // 仅当该 Location 已经注入过、非主动推送(realLocation=true)、且注入时的基准坐标与当前目标坐标一致时才跳过重复注入；
+        // 一旦路线移动更新了 FakeLoc.latitude/longitude，或属于主动推送(realLocation=false)，必须重新注入新坐标。
+        val matchesCurrentTarget = extras != null &&
+            extras.containsKey(EXTRA_INJECTED_LAT) &&
+            extras.containsKey(EXTRA_INJECTED_LON) &&
+            abs(extras.getDouble(EXTRA_INJECTED_LAT, Double.NaN) - FakeLoc.latitude) < 1e-7 &&
+            abs(extras.getDouble(EXTRA_INJECTED_LON, Double.NaN) - FakeLoc.longitude) < 1e-7
+        if (realLocation && hasInjectedTag && matchesCurrentTarget) {
             return originLocation
         }
 
@@ -60,7 +71,9 @@ abstract class BaseLocationHook: BaseDivineService() {
             4.5f
         }
         location.accuracy = (baseAccuracy + Random.nextDouble(-0.4, 0.6).toFloat()).coerceAtLeast(1.0f)
-        val jitterLat = FakeLoc.jitterLocation()
+        val targetLat = FakeLoc.latitude
+        val targetLon = FakeLoc.longitude
+        val jitterLat = FakeLoc.jitterLocation(lat = targetLat, lon = targetLon)
         location.latitude = jitterLat.first
         location.longitude = jitterLat.second
         location.altitude = FakeLoc.altitude
@@ -118,6 +131,8 @@ abstract class BaseLocationHook: BaseDivineService() {
         }
         location.extras = originLocation.extras?.let { Bundle(it) } ?: Bundle()
         location.extras?.putDouble("latlon", location.latitude + location.longitude)
+        location.extras?.putDouble(EXTRA_INJECTED_LAT, targetLat)
+        location.extras?.putDouble(EXTRA_INJECTED_LON, targetLon)
         val inUseSats = com.nanci.awalocation.xposed.hooks.LocationServiceHook.lastInUseSatelliteCount.coerceIn(14, 28)
         location.extras?.putInt("satellites", inUseSats)
         location.extras?.putInt("maxCn0", Random.nextInt(40, 48))

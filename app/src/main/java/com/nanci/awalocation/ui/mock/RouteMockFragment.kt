@@ -112,8 +112,10 @@ class RouteMockFragment : Fragment() {
         val currentRoute = mockServiceViewModel.selectedRoute ?: requireContext().selectRoute
         if (currentRoute != null) {
             renderTargetRoute(currentRoute)
-            mockServiceViewModel.selectedRoute = currentRoute
-            mockServiceViewModel.routeStage = 0
+            if (mockServiceViewModel.selectedRoute == null) {
+                mockServiceViewModel.selectedRoute = currentRoute
+                mockServiceViewModel.routeStage = 0
+            }
         } else {
             renderEmptyTargetRoute()
         }
@@ -163,9 +165,7 @@ class RouteMockFragment : Fragment() {
                                 selectRoute?.name == route.name
                             ) {
                                 mockServiceViewModel.selectedRoute = null
-                                mockServiceViewModel.routeStage = 0
-                                mockServiceViewModel.rocker.autoStatus = false
-                                mockServiceViewModel.routeMockCoroutine.pause()
+                                mockServiceViewModel.stopRoutePlayback(resetStage = true)
                                 selectRoute = null
                                 renderEmptyTargetRoute()
                             }
@@ -284,6 +284,10 @@ class RouteMockFragment : Fragment() {
             showToast("所选路线为空")
             return
         }
+        if (selectedRoute.route.size < 2) {
+            showToast("所选路线至少需要 2 个路径点")
+            return
+        }
 
         val lm = mockServiceViewModel.locationManager ?: run {
             showToast("定位服务加载异常")
@@ -298,26 +302,33 @@ class RouteMockFragment : Fragment() {
         lifecycleScope.launch {
             val context = requireContext()
             val speed = context.speed
+            if (speed <= 0.0) {
+                showToast("当前模拟速度为 0，请先在设置中调整速度")
+                return@launch
+            }
             val altitude = context.altitude
             val accuracy = context.accuracy
 
             button.isClickable = false
             try {
                 mockServiceViewModel.routeStage = 0
-                withContext(Dispatchers.IO) {
-                    if (MockServiceHelper.tryOpenMock(lm, speed, altitude, accuracy)) {
-                        mockServiceViewModel.refreshMockState()
-                    } else {
+                val started = withContext(Dispatchers.IO) {
+                    if (!MockServiceHelper.tryOpenMock(lm, speed, altitude, accuracy)) {
                         showToast("模拟服务启动失败")
-                        return@withContext
+                        return@withContext false
                     }
+                    mockServiceViewModel.refreshMockState()
 
                     val first = selectedRoute.route[0]
-                    if (MockServiceHelper.setLocation(lm, first.first, first.second)) {
-                        showToast("已切换到路线起点")
-                    } else {
+                    if (!MockServiceHelper.setLocation(lm, first.first, first.second)) {
                         showToast("更新位置失败")
+                        return@withContext false
                     }
+                    true
+                }
+                if (started) {
+                    mockServiceViewModel.startRoutePlayback()
+                    showToast("已启动路线模拟，开始沿路线移动")
                 }
             } finally {
                 button.isClickable = true
@@ -339,6 +350,7 @@ class RouteMockFragment : Fragment() {
         lifecycleScope.launch {
             button.isClickable = false
             try {
+                mockServiceViewModel.stopRoutePlayback(resetStage = true)
                 val isClosed = withContext(Dispatchers.IO) {
                     if (!MockServiceHelper.isMockStart(lm)) {
                         showToast("模拟服务未启动")
@@ -352,11 +364,6 @@ class RouteMockFragment : Fragment() {
                         showToast("模拟服务停止失败")
                         return@withContext false
                     }
-                }
-                if (isClosed) {
-                    mockServiceViewModel.rocker.autoStatus = false
-                    mockServiceViewModel.routeMockCoroutine.pause()
-                    mockServiceViewModel.routeStage = 0
                 }
                 if (isClosed && mockServiceViewModel.rocker.isStart) {
                     binding.rocker.isClickable = false
@@ -405,11 +412,21 @@ class RouteMockFragment : Fragment() {
 
                 val lm = mockServiceViewModel.locationManager
                 if (lm != null && MockServiceHelper.isMockStart(lm) && route.route.isNotEmpty()) {
-                    val first = route.route[0]
-                    if (MockServiceHelper.setLocation(lm, first.first, first.second)) {
-                        Toast.makeText(requireContext(), "已切换至路线起点", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(requireContext(), "更新位置失败", Toast.LENGTH_SHORT).show()
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        val first = route.route[0]
+                        val updated = withContext(Dispatchers.IO) {
+                            MockServiceHelper.setLocation(lm, first.first, first.second)
+                        }
+                        if (updated) {
+                            if (route.route.size >= 2 && requireContext().speed > 0.0) {
+                                mockServiceViewModel.startRoutePlayback()
+                                Toast.makeText(requireContext(), "已切换路线并开始移动", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(requireContext(), "已切换至路线起点", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            Toast.makeText(requireContext(), "更新位置失败", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }

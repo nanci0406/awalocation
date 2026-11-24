@@ -1,0 +1,79 @@
+awalocation
+Copyright (C) 2025-2026 nanci0406 and contributors
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
+See LICENSE in the repository root for the full text.
+
+Additional Permission under GPLv3 Section 7 (Linking Exception):
+For original source code authored by the awalocation contributors in the :app
+module, permission is granted to link and distribute it with the AMap Android
+SDK (com.amap.api:3dmap-location-search) and Tencent Bugly SDK
+(com.tencent.bugly:crashreport). The :xposed module (including native sensor
+hook code derived from kail_location) operates in separate system/target
+processes via Android LocationManager IPC and does not link against those
+proprietary SDKs.
+
+--------------------------------------------------------------------------------
+Upstream & Third-Party Open-Source Projects
+--------------------------------------------------------------------------------
+
+1. Portal (original repo archived)
+   - Repository: https://github.com/fuqiuluo/Portal
+   - Author: @fuqiuluo and contributors
+   - License: Apache License 2.0
+   - Usage: Base Xposed location/GNSS/NMEA hook architecture and app foundation.
+
+2. kail_location
+   - Repository: https://github.com/noellegazelle6/kail_location
+   - Author: @noellegazelle6
+   - License: GNU General Public License v3.0 (GPL-3.0)
+   - Usage: Native C++ SensorService / BitTube hook and gait/step simulation
+     (xposed/src/main/cpp).
+
+3. Dobby & dobby-android
+   - Repositories:
+     * https://github.com/jmpews/Dobby (@jmpews)
+     * https://github.com/vvb2060/dobby-android (@vvb2060)
+   - License: Apache License 2.0
+   - Usage: ARM64 inline hook engine and Android NDK Prefab package.
+
+4. RockerView
+   - Repository: https://github.com/lqxue/RockerView
+   - Author: @lqxue
+   - License: Apache License 2.0
+   - Usage: Floating joystick View reference (RockerView.kt).
+
+5. LSPosed & XposedBridge API
+   - Repositories:
+     * https://github.com/LSPosed/LSPosed (GPL-3.0)
+     * https://github.com/rovo89/XposedBridge (Apache License 2.0)
+   - Usage: Xposed runtime environment and compile-only API.
+
+6. GeographicLib-Java
+   - Repository: https://github.com/geographiclib/geographiclib-java
+   - License: MIT License
+   - Usage: WGS84 geodesic distance and bearing calculation.
+
+7. HiddenApiRefinePlugin
+   - Repository: https://github.com/RikkaApps/HiddenApiRefinePlugin
+   - Authors: Kr328 & RikkaW
+   - License: MIT License
+   - Usage: Hidden Android system API compile-time refinement.
+
+8. Other Open-Source Dependencies (Apache License 2.0)
+   - AndroidX & Material Components for Android
+   - Kotlin Standard Library & kotlinx.serialization
+   - OkHttp
+   - Fastjson2
+
+--------------------------------------------------------------------------------
+Proprietary Third-Party SDKs
+--------------------------------------------------------------------------------
+
+The :app module depends on the following closed-source binary SDKs via Maven:
+  - AMap Android 3D Map / Location / Search SDK (com.amap.api:3dmap-location-search)
+  - Tencent Bugly Crash Report SDK (com.tencent.bugly:crashreport, disabled
+    unless BUGLY_APPID is explicitly provided at build time)
+
+These SDKs are not open-source and remain governed by their respective vendor
+terms and privacy policies.

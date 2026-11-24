@@ -1,40 +1,21 @@
 package com.nanci.awalocation.android.coro
 
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 
 class CoroutineRouteMock {
-    private val routeMockChannel = Channel<RouteMockCommand>(Channel.UNLIMITED)
-    var isPaused = false
+    private val pausedFlow = MutableStateFlow(true)
+    val isPaused: Boolean get() = pausedFlow.value
 
     suspend fun routeMockCoroutine() {
-        checkRouteMockStatus()
-    }
-
-    private suspend fun checkRouteMockStatus() {
-        routeMockChannel.tryReceive().getOrNull()?.let {
-            when (it) {
-                RouteMockCommand.Pause -> {
-                    isPaused = true
-                    while (routeMockChannel.receive() != RouteMockCommand.Resume) {
-                        // do nothing
-                    }
-                    isPaused = false
-                }
-                RouteMockCommand.Resume -> {}
-            }
-        }
+        pausedFlow.first { !it }
     }
 
     fun pause() {
-        routeMockChannel.trySend(RouteMockCommand.Pause)
+        pausedFlow.value = true
     }
 
     fun resume() {
-        routeMockChannel.trySend(RouteMockCommand.Resume)
+        pausedFlow.value = false
     }
-}
-
-enum class RouteMockCommand {
-    Pause,
-    Resume
 }

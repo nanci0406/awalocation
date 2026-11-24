@@ -1,40 +1,21 @@
 package com.nanci.awalocation.android.coro
 
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 
 class CoroutineController {
-    private val controlChannel = Channel<ControlCommand>(Channel.UNLIMITED)
-    var isPaused = false
+    private val pausedFlow = MutableStateFlow(true)
+    val isPaused: Boolean get() = pausedFlow.value
 
     suspend fun controlledCoroutine() {
-        checkControl()
-    }
-
-    private suspend fun checkControl() {
-        controlChannel.tryReceive().getOrNull()?.let {
-            when (it) {
-                ControlCommand.Pause -> {
-                    isPaused = true
-                    while (controlChannel.receive() != ControlCommand.Resume) {
-                        // do nothing
-                    }
-                    isPaused = false
-                }
-                ControlCommand.Resume -> {}
-            }
-        }
+        pausedFlow.first { !it }
     }
 
     fun pause() {
-        controlChannel.trySend(ControlCommand.Pause)
+        pausedFlow.value = true
     }
 
     fun resume() {
-        controlChannel.trySend(ControlCommand.Resume)
+        pausedFlow.value = false
     }
-}
-
-enum class ControlCommand {
-    Pause,
-    Resume
 }

@@ -150,7 +150,7 @@ object TelephonyHook: BaseTelephonyHook() {
                     Logger.debug("${method.name}: injected!")
                 }
 
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || result.javaClass.name == "android.os.Bundle") {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || result?.javaClass?.name == "android.os.Bundle") {
                     result = Bundle().apply {
                         putInt("cid", Int.MAX_VALUE)
                         putInt("lac", Int.MAX_VALUE)
@@ -181,8 +181,8 @@ object TelephonyHook: BaseTelephonyHook() {
                         Int.MAX_VALUE,
                         Int.MAX_VALUE,
                         Int.MAX_VALUE,
-                        (FakeLoc.latitude * 14400.0).toInt(),
                         (FakeLoc.longitude * 14400.0).toInt(),
+                        (FakeLoc.latitude * 14400.0).toInt(),
                         null, null
                     )
                 }
@@ -250,11 +250,11 @@ object TelephonyHook: BaseTelephonyHook() {
                         return@hookBefore
                     }
 
-                    val listener = args[idx] as Any
+                    val listener = args.getOrNull(idx) ?: return@hookBefore
                     val hasHookOnCellLocationChanged = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         listener.javaClass.onceHookMethodBefore("onCellLocationChanged", CellIdentity::class.java) {
-                            if (FakeLoc.enable) {
-                                result = CellIdentityCdma::class.java.getConstructor(
+                            if (FakeLoc.enable && args.isNotEmpty()) {
+                                args[0] = CellIdentityCdma::class.java.getConstructor(
                                     Int::class.java,
                                     Int::class.java,
                                     Int::class.java,
@@ -266,16 +266,16 @@ object TelephonyHook: BaseTelephonyHook() {
                                     Int.MAX_VALUE,
                                     Int.MAX_VALUE,
                                     Int.MAX_VALUE,
-                                    (FakeLoc.latitude * 14400.0).toInt(),
                                     (FakeLoc.longitude * 14400.0).toInt(),
+                                    (FakeLoc.latitude * 14400.0).toInt(),
                                     null, null
                                 )
                             }
                         }
                     } else {
                         listener.javaClass.onceHookMethodBefore("onCellLocationChanged", Bundle::class.java) {
-                            if (FakeLoc.enable) {
-                                result = Bundle().apply {
+                            if (FakeLoc.enable && args.isNotEmpty()) {
+                                args[0] = Bundle().apply {
                                     putInt("cid", Int.MAX_VALUE)
                                     putInt("lac", Int.MAX_VALUE)
                                     putInt("psc", Int.MAX_VALUE)
@@ -439,10 +439,12 @@ object TelephonyHook: BaseTelephonyHook() {
                 return@beforeHook
             }
 
-            val code = args[0] as Int
-            val data = args[1] as Parcel
-            val reply = args[2] as Parcel
-            val flags = args[3] as Int
+            if (args.size < 3) return@beforeHook
+            val code = args[0] as? Int ?: return@beforeHook
+            val data = args[1] as? Parcel ?: return@beforeHook
+            val reply = args[2] as? Parcel ?: return@beforeHook
+            @Suppress("UNUSED_VARIABLE")
+            val flags = args.getOrNull(3) as? Int ?: 0
 
             if (code == -1) return@beforeHook
 

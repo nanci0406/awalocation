@@ -11,6 +11,7 @@ import android.os.DeadObjectException
 import android.os.IBinder
 import android.os.IInterface
 import android.os.Parcel
+import android.os.SystemClock
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
@@ -857,6 +858,7 @@ internal object LocationServiceHook: BaseLocationHook() {
 //        })
 
         cILocationManager.hookAllMethods("getCurrentLocation", beforeHook {
+            if (args.size < 3) return@beforeHook
             val callback = args[2] ?: return@beforeHook
 
             if (FakeLoc.enableDebugLog) {
@@ -870,7 +872,8 @@ internal object LocationServiceHook: BaseLocationHook() {
 
             val classCallback = callback.javaClass
             classCallback.onceHookAllMethod("onLocation", beforeHook onLocation@ {
-                val location = args[0] as? Location ?: return@onLocation
+                if (!FakeLoc.enable) return@onLocation
+                val location = args.getOrNull(0) as? Location ?: return@onLocation
 
                 if (FakeLoc.enableDebugLog) {
                     Logger.debug("onLocation(getCurrentLocation): injected!")
@@ -883,8 +886,8 @@ internal object LocationServiceHook: BaseLocationHook() {
         cILocationManager.hookAllMethods("sendExtraCommand", beforeHook {
             if (args.size < 3) return@beforeHook
 
-            val provider = args[0] as String
-            val command = args[1] as String
+            val provider = args[0] as? String
+            val command = args[1] as? String ?: return@beforeHook
             val outResult = args[2] as? Bundle
 
             if (FakeLoc.disableFusedLocation && provider == "fused") {
@@ -923,9 +926,9 @@ internal object LocationServiceHook: BaseLocationHook() {
                 "isProviderEnabledForUser",
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam?) {
-                        if (param == null || param.args.size < 2 || param.args[0] == null) return
-                        val provider = param.args[0] as String
-                        var userId = param.args[1] as Int
+                        if (param == null || param.args.size < 2) return
+                        val provider = param.args[0] as? String ?: return
+                        var userId = param.args[1] as? Int ?: return
                         if (provider == "awalocation") {
                             if (userId == 0) {
                                 userId = BinderUtils.getCallerUid()
@@ -950,8 +953,8 @@ internal object LocationServiceHook: BaseLocationHook() {
                 "isProviderEnabled",
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam?) {
-                        if (param == null || param.args.isEmpty() || param.args[0] == null) return
-                        val provider = param.args[0] as String
+                        if (param == null || param.args.isEmpty()) return
+                        val provider = param.args[0] as? String ?: return
                         val userId = BinderUtils.getCallerUid()
                         if (provider == "awalocation" && BinderUtils.isLocationProviderEnabled(userId)) {
                             param.result = true
@@ -969,7 +972,7 @@ internal object LocationServiceHook: BaseLocationHook() {
         // F**k You! AMAP Service!
         XposedBridge.hookAllMethods(cILocationManager, "setExtraLocationControllerPackageEnabled", object: XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
-                if (FakeLoc.enable) {
+                if (FakeLoc.enable && param.args.isNotEmpty()) {
                     param.args[0] = false
                 }
             }
@@ -1006,7 +1009,7 @@ internal object LocationServiceHook: BaseLocationHook() {
 
                         is List<*> -> {
                             val locations = param.args[0] as List<*>
-                            param.args[0] = locations.map { injectLocation(it as Location) }
+                            param.args[0] = locations.map { (it as? Location)?.let(::injectLocation) ?: it }
                         }
                         else -> Logger.error("onLocationChanged args is not `Location`")
                     }
@@ -1054,11 +1057,15 @@ internal object LocationServiceHook: BaseLocationHook() {
         val mDeathRecipient = object: IBinder.DeathRecipient {
             override fun binderDied() {}
             override fun binderDied(who: IBinder) {
-                who.unlinkToDeath(this, 0)
+                runCatching { who.unlinkToDeath(this, 0) }
                 removeLocationListenerByBinder(who)
             }
         }
-        listener.asBinder().linkToDeath(mDeathRecipient, 0)
+        runCatching {
+            listener.asBinder().linkToDeath(mDeathRecipient, 0)
+        }.onFailure {
+            Logger.warn("linkToDeath failed for location listener", it)
+        }
         locationListeners.add(provider to listener)
         hookILocationListener(listener)
     }
@@ -1080,15 +1087,15 @@ internal object LocationServiceHook: BaseLocationHook() {
         }
         locationListeners.forEach { listenerWithProvider ->
             val listener = listenerWithProvider.second
-            var location = FakeLoc.lastLocation
-            if (location == null) {
-                location = if (listenerWithProvider.first == "GnssBatch") {
+            var location = FakeLoc.lastLocation?.let { Location(it) }
+                ?: if (listenerWithProvider.first == "GnssBatch") {
                     Location("gps")
                 } else {
                     Location(listenerWithProvider.first)
                 }
-            }
-            location = injectLocation(location)
+            location.time = System.currentTimeMillis()
+            location.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
+            location = injectLocation(location, realLocation = false)
             var called = false
             var error: Throwable? = null
             kotlin.runCatching {
@@ -1138,9 +1145,12 @@ internal object LocationServiceHook: BaseLocationHook() {
 
                         val thisObject = param.thisObject
                         val code = param.args[0] as? Int ?: return
-                        val data = param.args[1] as? Parcel ?: return
-                        val reply = param.args[2] as? Parcel ?: return
-                        val flags = param.args[3] as? Int ?: return
+                        @Suppress("UNUSED_VARIABLE")
+                        val data = param.args[1] as? Parcel
+                        @Suppress("UNUSED_VARIABLE")
+                        val reply = param.args[2] as? Parcel
+                        @Suppress("UNUSED_VARIABLE")
+                        val flags = param.args[3] as? Int ?: 0
 
                         if (isHooked.compareAndSet(false, true)) {
                             onService(thisObject.javaClass)

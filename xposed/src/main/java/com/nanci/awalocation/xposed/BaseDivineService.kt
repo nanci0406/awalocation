@@ -7,6 +7,7 @@ import android.os.Binder
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcel
+import android.os.Process
 import com.nanci.awalocation.xposed.utils.BinderUtils
 import com.nanci.awalocation.xposed.utils.FakeLoc
 import com.nanci.awalocation.xposed.utils.Logger
@@ -72,11 +73,14 @@ abstract class BaseDivineService {
 
             override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
                 if (code == 1) {
-                    val bundle = data.readBundle(javaClass.classLoader)!!
+                    if (getCallingUid() != Process.SYSTEM_UID) {
+                        return false
+                    }
+                    val bundle = data.readBundle(javaClass.classLoader) ?: return true
                     if (FakeLoc.enableDebugLog) {
                         Logger.debug("ProxyBinder($from): $bundle")
                     }
-                    if(!RemoteCommandHandler.handleInstruction(randomKey, bundle)) {
+                    if (!RemoteCommandHandler.handleForwardedInstruction(bundle)) {
                         Logger.error("Failed to handle instruction in $from")
                     }
                     return true

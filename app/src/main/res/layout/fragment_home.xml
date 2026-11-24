@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:clipChildren="false"
-    android:clipToPadding="false"
     tools:context=".ui.home.HomeFragment">
 
     <com.amap.api.maps.MapView
@@ -20,19 +18,20 @@
         android:id="@+id/home_map_loading"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/awalocation_background"
+        android:background="?android:attr/colorBackground"
         android:clickable="true"
+        android:elevation="20dp"
         android:focusable="true">
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            app:cardBackgroundColor="@color/awalocation_surface"
+            app:cardBackgroundColor="?attr/colorSurface"
             app:cardCornerRadius="24dp"
-            app:cardElevation="6dp"
+            app:cardElevation="4dp"
             app:contentPadding="24dp"
-            app:strokeColor="@color/awalocation_outline_variant"
+            app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -45,7 +44,7 @@
                     android:layout_width="34dp"
                     android:layout_height="34dp"
                     android:indeterminate="true"
-                    app:indicatorColor="@color/awalocation_primary"
+                    app:indicatorColor="?attr/colorPrimary"
                     app:indicatorSize="34dp"
                     app:trackThickness="3dp" />
 
@@ -59,299 +58,672 @@
         </com.google.android.material.card.MaterialCardView>
     </FrameLayout>
 
-    <!-- 顶部搜索与当前地址 -->
-    <LinearLayout
-        android:id="@+id/home_top_overlay"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top"
+        android:layout_height="match_parent"
         android:clipChildren="false"
-        android:clipToPadding="false"
-        android:orientation="vertical"
-        android:paddingStart="16dp"
-        android:paddingTop="12dp"
-        android:paddingEnd="16dp">
+        android:clipToPadding="false">
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/home_search_card"
-            android:layout_width="match_parent"
+        <!-- 右侧竖排快捷地图工具列（自动保持在底部面板上方） -->
+        <LinearLayout
+            android:id="@+id/home_right_tools"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground"
-            app:cardBackgroundColor="@color/awalocation_surface"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp"
-            app:contentPadding="0dp"
-            app:strokeColor="@color/awalocation_outline_variant"
-            app:strokeWidth="1dp">
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="14dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toTopOf="@id/home_bottom_dock"
+            app:layout_constraintEnd_toEndOf="parent">
 
-            <LinearLayout
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/map_zoom_controls"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="4dp"
+                app:contentPadding="2dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/zoom_in"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/zoom_in"
+                        android:padding="10dp"
+                        android:src="@drawable/ic_map_zoom_in"
+                        app:tint="?attr/colorPrimary" />
+
+                    <View
+                        android:layout_width="24dp"
+                        android:layout_height="0.8dp"
+                        android:layout_gravity="center_horizontal"
+                        android:background="?attr/colorOutlineVariant" />
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/zoom_out"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/zoom_out"
+                        android:padding="10dp"
+                        android:src="@drawable/ic_map_zoom_out"
+                        app:tint="?attr/colorPrimary" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="4dp"
+                app:contentPadding="2dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/btn_my_location"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/follow_location"
+                        android:padding="10dp"
+                        android:src="@drawable/baseline_my_location_24"
+                        app:tint="?attr/colorPrimary" />
+
+                    <View
+                        android:layout_width="24dp"
+                        android:layout_height="0.8dp"
+                        android:layout_gravity="center_horizontal"
+                        android:background="?attr/colorOutlineVariant" />
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/btn_goto_coords"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/goto_location"
+                        android:padding="10dp"
+                        android:src="@drawable/baseline_edit_location_alt_24"
+                        app:tint="?attr/colorPrimary" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- 底部停靠区：选点详情卡片 / 运行态实时胶囊 -->
+        <FrameLayout
+            android:id="@+id/home_bottom_dock"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="14dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <!-- 选点底部卡片 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/home_selection_sheet"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:visibility="gone"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="8dp"
+                app:contentPadding="18dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:contentDescription="@null"
-                        app:srcCompat="@drawable/baseline_search_24"
-                        app:tint="@color/awalocation_primary" />
+                    <View
+                        android:layout_width="36dp"
+                        android:layout_height="4dp"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="12dp"
+                        android:background="@drawable/bg_badge_surface_variant" />
 
-                    <TextView
-                        android:id="@+id/home_search_hint"
-                        android:layout_width="0dp"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
-                        android:layout_weight="1"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:text="@string/search_hint"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:textColor="@color/awalocation_hint_color" />
-                </LinearLayout>
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="0.8dp"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginEnd="16dp"
-                    android:background="@color/awalocation_outline_variant" />
+                        <ImageView
+                            android:layout_width="38dp"
+                            android:layout_height="38dp"
+                            android:background="@drawable/bg_header_mark"
+                            android:contentDescription="@null"
+                            android:padding="9dp"
+                            app:srcCompat="@drawable/baseline_location_pin_24"
+                            app:tint="?attr/colorPrimary" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/selection_title"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:text="@string/current_location_unknown"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/selection_address"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:ellipsize="end"
+                                android:maxLines="2"
+                                android:text="@string/none_none"
+                                android:textAppearance="@style/Awalocation.BodySecondary"
+                                android:textSize="12.5sp" />
+                        </LinearLayout>
+
+                        <ImageButton
+                            android:id="@+id/btn_close_selection"
+                            android:layout_width="34dp"
+                            android:layout_height="34dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/back"
+                            android:padding="7dp"
+                            app:srcCompat="@drawable/baseline_close_24"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/btn_copy_coords"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_badge_surface_variant"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="10dp"
+                        android:paddingTop="6dp"
+                        android:paddingEnd="10dp"
+                        android:paddingBottom="6dp">
+
+                        <TextView
+                            android:id="@+id/selection_coords"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:maxLines="1"
+                            android:text="@string/default_latlon"
+                            android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        <ImageView
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:layout_marginStart="8dp"
+                            android:contentDescription="@string/copy_coords"
+                            app:srcCompat="@drawable/ic_copy_24"
+                            app:tint="?attr/colorPrimary" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_mock_here"
+                            style="@style/Awalocation.Button"
+                            android:layout_width="0dp"
+                            android:layout_height="46dp"
+                            android:layout_weight="1.15"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:singleLine="true"
+                            android:text="@string/mock_here"
+                            app:icon="@drawable/rounded_play_arrow_24" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_save_selection"
+                            style="@style/Awalocation.Button.Tonal"
+                            android:layout_width="0dp"
+                            android:layout_height="46dp"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:singleLine="true"
+                            android:text="@string/save_location"
+                            app:icon="@drawable/baseline_add_location_alt_24" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 运行中实时状态胶囊（两行布局，保证状态文字与按钮都有充足空间） -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/home_live_pill"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="6dp"
+                app:contentPadding="14dp"
+                app:strokeColor="?attr/colorPrimary"
+                app:strokeWidth="1.2dp">
 
                 <LinearLayout
-                    android:id="@+id/home_address_row"
                     android:layout_width="match_parent"
-                    android:layout_height="42dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:layout_width="17dp"
-                        android:layout_height="17dp"
-                        android:contentDescription="@null"
-                        app:srcCompat="@drawable/baseline_location_on_24"
-                        app:tint="@color/awalocation_success" />
-
-                    <TextView
-                        android:id="@+id/home_current_address"
-                        android:layout_width="0dp"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:layout_weight="1"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:text="@string/current_location_loading"
-                        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                        android:textColor="@color/awalocation_on_surface_variant" />
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
+                        <View
+                            android:id="@+id/live_status_dot"
+                            android:layout_width="9dp"
+                            android:layout_height="9dp"
+                            android:layout_marginStart="2dp"
+                            android:background="@drawable/bg_live_dot" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/live_status_title"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:text="@string/status_running"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/live_status_subtitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_live_rocker"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:maxLines="1"
+                            android:minWidth="0dp"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:singleLine="true"
+                            android:text="@string/rocker"
+                            android:textSize="13sp"
+                            app:cornerRadius="14dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_live_stop"
+                            style="@style/Widget.Material3.Button"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:maxLines="1"
+                            android:minWidth="0dp"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:singleLine="true"
+                            android:text="@string/stop_mock"
+                            android:textSize="13sp"
+                            app:backgroundTint="@color/red500"
+                            app:cornerRadius="14dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </FrameLayout>
+
+        <!-- 顶部悬浮搜索 + 结果下拉 + 图层控制（放最后保证搜索结果位于最顶层不被遮挡） -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:id="@+id/home_top_overlay"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:elevation="12dp"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
             <com.google.android.material.card.MaterialCardView
-                android:layout_width="wrap_content"
+                android:id="@+id/home_search_card"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/awalocation_surface"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="3dp"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="6dp"
                 app:contentPadding="0dp"
-                app:strokeColor="@color/awalocation_outline_variant"
+                app:strokeColor="?attr/colorOutlineVariant"
                 app:strokeWidth="1dp">
 
-                <com.google.android.material.checkbox.MaterialCheckBox
-                    android:id="@+id/show_route"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:gravity="center_vertical"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="16dp"
-                    android:text="@string/show_route"
-                    android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                    android:textColor="@color/awalocation_text_color"
-                    app:buttonTint="@color/awalocation_primary" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="10dp">
+
+                        <View
+                            android:id="@+id/home_search_status_dot"
+                            android:layout_width="9dp"
+                            android:layout_height="9dp"
+                            android:layout_marginEnd="8dp"
+                            android:background="@drawable/bg_live_dot" />
+
+                        <ImageButton
+                            android:id="@+id/home_search_icon"
+                            android:layout_width="34dp"
+                            android:layout_height="34dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/action_search"
+                            android:padding="7dp"
+                            app:srcCompat="@drawable/baseline_search_24"
+                            app:tint="?attr/colorPrimary" />
+
+                        <EditText
+                            android:id="@+id/home_search_input"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:background="@null"
+                            android:hint="@string/search_hint"
+                            android:imeOptions="actionSearch"
+                            android:importantForAutofill="no"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:singleLine="true"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textColorHint="@color/awalocation_hint_color"
+                            android:textSize="15sp" />
+
+                        <ImageButton
+                            android:id="@+id/home_search_clear"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/clear_search"
+                            android:padding="8dp"
+                            android:visibility="gone"
+                            app:srcCompat="@drawable/baseline_close_24"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="0.8dp"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp"
+                        android:background="?attr/colorOutlineVariant" />
+
+                    <LinearLayout
+                        android:id="@+id/home_address_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null"
+                            app:srcCompat="@drawable/baseline_location_on_24"
+                            app:tint="@color/awalocation_success" />
+
+                        <TextView
+                            android:id="@+id/home_current_address"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:text="@string/current_location_loading"
+                            android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
+            <!-- 紧贴搜索框下方的结果下拉卡片 -->
             <com.google.android.material.card.MaterialCardView
-                android:layout_width="wrap_content"
+                android:id="@+id/home_search_results_card"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/awalocation_surface"
+                android:layout_marginTop="8dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="?attr/colorSurface"
                 app:cardCornerRadius="20dp"
-                app:cardElevation="3dp"
-                app:contentPadding="2dp"
-                app:strokeColor="@color/awalocation_outline_variant"
+                app:cardElevation="10dp"
+                app:contentPadding="8dp"
+                app:strokeColor="?attr/colorOutlineVariant"
                 app:strokeWidth="1dp">
 
-                <RadioGroup
-                    android:id="@+id/map_type_group"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:background="@drawable/bg_glass_pill"
-                    android:orientation="horizontal"
-                    android:padding="3dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-                    <RadioButton
-                        android:id="@+id/map_type_normal"
-                        android:layout_width="66dp"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/bg_map_type_selector"
-                        android:button="@null"
-                        android:checked="true"
-                        android:gravity="center"
-                        android:text="@string/normal_view"
-                        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                        android:textColor="@color/map_type_text_color" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="10dp"
+                        android:paddingTop="4dp"
+                        android:paddingEnd="10dp"
+                        android:paddingBottom="4dp">
 
-                    <RadioButton
-                        android:id="@+id/map_type_satellite"
-                        android:layout_width="66dp"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/bg_map_type_selector"
-                        android:button="@null"
-                        android:gravity="center"
-                        android:text="@string/satellite_view"
-                        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                        android:textColor="@color/map_type_text_color" />
-                </RadioGroup>
+                        <TextView
+                            android:id="@+id/home_search_header"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/search_results"
+                            android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        <com.google.android.material.progressindicator.CircularProgressIndicator
+                            android:id="@+id/home_search_progress"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:indeterminate="true"
+                            android:visibility="gone"
+                            app:indicatorColor="?attr/colorPrimary"
+                            app:indicatorSize="16dp"
+                            app:trackThickness="2dp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/home_search_status_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="10dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="10dp"
+                        android:paddingBottom="10dp"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/home_search_results_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="260dp"
+                        android:clipToPadding="false"
+                        android:overScrollMode="ifContentScrolls"
+                        android:scrollbars="vertical" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- 快捷视图胶囊行 -->
+            <LinearLayout
+                android:id="@+id/home_chip_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="3dp"
+                    app:contentPadding="0dp"
+                    app:strokeColor="?attr/colorOutlineVariant"
+                    app:strokeWidth="1dp">
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/show_route"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="14dp"
+                        android:text="@string/show_route"
+                        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                        android:textColor="?attr/colorOnSurface"
+                        app:buttonTint="?attr/colorPrimary" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="3dp"
+                    app:contentPadding="2dp"
+                    app:strokeColor="?attr/colorOutlineVariant"
+                    app:strokeWidth="1dp">
+
+                    <RadioGroup
+                        android:id="@+id/map_type_group"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_glass_pill"
+                        android:orientation="horizontal"
+                        android:padding="3dp">
+
+                        <RadioButton
+                            android:id="@+id/map_type_normal"
+                            android:layout_width="68dp"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/bg_map_type_selector"
+                            android:button="@null"
+                            android:checked="true"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/normal_view"
+                            android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                            android:textColor="@color/map_type_text_color" />
+
+                        <RadioButton
+                            android:id="@+id/map_type_satellite"
+                            android:layout_width="68dp"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/bg_map_type_selector"
+                            android:button="@null"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/satellite_view"
+                            android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                            android:textColor="@color/map_type_text_color" />
+                    </RadioGroup>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
 
-    <!-- 自定义地图缩放控件 -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/map_zoom_controls"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end|bottom"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="96dp"
-        app:cardBackgroundColor="@color/awalocation_surface"
-        app:cardCornerRadius="18dp"
-        app:cardElevation="4dp"
-        app:contentPadding="2dp"
-        app:strokeColor="@color/awalocation_outline_variant"
-        app:strokeWidth="1dp">
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/zoom_in"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/zoom_in"
-                android:padding="11dp"
-                android:src="@drawable/ic_map_zoom_in"
-                app:tint="@color/awalocation_primary" />
-
-            <View
-                android:layout_width="24dp"
-                android:layout_height="0.8dp"
-                android:layout_gravity="center_horizontal"
-                android:background="@color/awalocation_outline_variant" />
-
-            <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/zoom_out"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/zoom_out"
-                android:padding="11dp"
-                android:src="@drawable/ic_map_zoom_out"
-                app:tint="@color/awalocation_primary" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- 底部悬浮操作按钮组 -->
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="20dp"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/quick_actions"
-            app:backgroundTint="@color/awalocation_primary"
-            app:borderWidth="0dp"
-            app:elevation="4dp"
-            app:fabSize="normal"
-            app:srcCompat="@drawable/baseline_keyboard_arrow_up_24"
-            app:tint="@color/awalocation_on_primary" />
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_my_location"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:contentDescription="@string/follow_location"
-            android:visibility="gone"
-            app:backgroundTint="@color/awalocation_surface"
-            app:borderWidth="0dp"
-            app:elevation="3dp"
-            app:fabSize="mini"
-            app:srcCompat="@drawable/baseline_my_location_24"
-            app:tint="@color/awalocation_primary" />
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_goto"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:contentDescription="@string/goto_location"
-            android:visibility="gone"
-            app:backgroundTint="@color/awalocation_surface"
-            app:borderWidth="0dp"
-            app:elevation="3dp"
-            app:fabSize="mini"
-            app:srcCompat="@drawable/baseline_edit_location_alt_24"
-            app:tint="@color/awalocation_primary" />
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_add"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:contentDescription="@string/save_location"
-            android:visibility="gone"
-            app:backgroundTint="@color/awalocation_surface"
-            app:borderWidth="0dp"
-            app:elevation="3dp"
-            app:fabSize="mini"
-            app:srcCompat="@drawable/baseline_add_location_alt_24"
-            app:tint="@color/awalocation_primary" />
-    </LinearLayout>
-
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</FrameLayout>

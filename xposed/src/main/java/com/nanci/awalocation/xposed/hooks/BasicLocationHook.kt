@@ -40,8 +40,8 @@ object BasicLocationHook: BaseLocationHook() {
             cLocationResult.hookAllMethodsAfter("asList") {
                 if (!FakeLoc.enable) return@hookAllMethodsAfter
 
-                val locations = result as List<*>
-                result = locations.map { injectLocation(it as Location) }
+                val locations = result as? List<*> ?: return@hookAllMethodsAfter
+                result = locations.map { (it as? Location)?.let(::injectLocation) ?: it }
             }
 
             cLocationResult.hookAllMethodsBefore("writeToParcel") {
@@ -54,7 +54,8 @@ object BasicLocationHook: BaseLocationHook() {
                     return@hookAllMethodsBefore
                 }
                 mLocationsField.isAccessible = true
-                val mLocations = mLocationsField.get(locationResult) as ArrayList<*>
+                val mLocations = mLocationsField.get(locationResult) as? ArrayList<*>
+                    ?: return@hookAllMethodsBefore
 
                 val originLocation = mLocations.firstOrNull() as? Location
                     ?: Location(LocationManager.GPS_PROVIDER)
@@ -70,7 +71,8 @@ object BasicLocationHook: BaseLocationHook() {
 
         Location::class.java.hookAllMethodsBefore("set") {
             if (!FakeLoc.enable) return@hookAllMethodsBefore
-            args[0] = injectLocation(args[0] as Location)
+            val location = args.getOrNull(0) as? Location ?: return@hookAllMethodsBefore
+            args[0] = injectLocation(location)
         }
 //        if (FakeLocationConfig.DEBUG) {
 //            // Track the invocation of AutoNavi map system services

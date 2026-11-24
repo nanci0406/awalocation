@@ -1,65 +1,88 @@
 package com.nanci.awalocation.android.root
 
+import kotlin.concurrent.thread
+
 object ShellUtils {
     fun hasRoot(): Boolean {
-        val runtime = Runtime.getRuntime()
-        try {
-            val process = runtime.exec("su")
-            process.outputStream.write("exit\n".toByteArray())
-            process.outputStream.flush()
-            process.waitFor()
-            return process.exitValue() == 0
-        } catch (e: Exception) {
-            return false
+        var process: Process? = null
+        return try {
+            process = ProcessBuilder("su").redirectErrorStream(true).start()
+            process.outputStream.use { out ->
+                out.write("exit\n".toByteArray())
+                out.flush()
+            }
+            process.inputStream.use { it.readBytes() }
+            process.waitFor() == 0
+        } catch (_: Exception) {
+            false
+        } finally {
+            process?.destroy()
         }
     }
 
     fun setEnforceMode(enabled: Boolean) {
-        val runtime = Runtime.getRuntime()
+        var process: Process? = null
         try {
-            val process = runtime.exec("su")
-            process.outputStream.write("setenforce ${if (enabled) "1" else "0"}\n".toByteArray())
-            process.outputStream.write("exit\n".toByteArray())
-            process.outputStream.flush()
+            process = ProcessBuilder("su").redirectErrorStream(true).start()
+            process.outputStream.use { out ->
+                out.write("setenforce ${if (enabled) "1" else "0"}\n".toByteArray())
+                out.write("exit\n".toByteArray())
+                out.flush()
+            }
+            process.inputStream.use { it.readBytes() }
             process.waitFor()
         } catch (e: Exception) {
             e.printStackTrace()
+        } finally {
+            process?.destroy()
         }
     }
 
     fun executeCommand(command: String): String {
-        val runtime = Runtime.getRuntime()
-        try {
-            val process = runtime.exec("su")
-            process.outputStream.write("$command\n".toByteArray())
-            process.outputStream.write("exit\n".toByteArray())
-            process.outputStream.flush()
-            process.waitFor()
-            if (process.exitValue() != 0) {
-                return process.errorStream.bufferedReader().readText()
+        var process: Process? = null
+        return try {
+            process = ProcessBuilder("su").start()
+            process.outputStream.use { out ->
+                out.write("$command\n".toByteArray())
+                out.write("exit\n".toByteArray())
+                out.flush()
             }
-            return process.inputStream.bufferedReader().readText()
+            var stderrText = ""
+            val errThread = thread(start = true) {
+                stderrText = runCatching { process.errorStream.bufferedReader().use { it.readText() } }.getOrDefault("")
+            }
+            val stdoutText = process.inputStream.bufferedReader().use { it.readText() }
+            errThread.join()
+            if (process.waitFor() != 0 && stderrText.isNotEmpty()) stderrText else stdoutText
         } catch (e: Exception) {
             e.printStackTrace()
-            return ""
+            ""
+        } finally {
+            process?.destroy()
         }
     }
 
     fun executeCommandToBytes(command: String): ByteArray {
-        val runtime = Runtime.getRuntime()
-        try {
-            val process = runtime.exec("su")
-            process.outputStream.write("$command\n".toByteArray())
-            process.outputStream.write("exit\n".toByteArray())
-            process.outputStream.flush()
-            process.waitFor()
-            if (process.exitValue() != 0) {
-                return process.errorStream.use { it.readBytes() }
+        var process: Process? = null
+        return try {
+            process = ProcessBuilder("su").start()
+            process.outputStream.use { out ->
+                out.write("$command\n".toByteArray())
+                out.write("exit\n".toByteArray())
+                out.flush()
             }
-            return process.inputStream.use { it.readBytes() }
+            var stderrBytes = ByteArray(0)
+            val errThread = thread(start = true) {
+                stderrBytes = runCatching { process.errorStream.use { it.readBytes() } }.getOrDefault(ByteArray(0))
+            }
+            val stdoutBytes = process.inputStream.use { it.readBytes() }
+            errThread.join()
+            if (process.waitFor() != 0 && stderrBytes.isNotEmpty()) stderrBytes else stdoutBytes
         } catch (e: Exception) {
             e.printStackTrace()
-            return ByteArray(0)
+            ByteArray(0)
+        } finally {
+            process?.destroy()
         }
     }
 }

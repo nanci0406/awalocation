@@ -27,7 +27,15 @@
         android:id="@+id/nav_route_gallery"
         android:name="com.nanci.awalocation.ui.mock.RouteMockFragment"
         android:label="@string/menu_route_mock"
-        tools:layout="@layout/fragment_route_mock" />
+        tools:layout="@layout/fragment_route_mock">
+        <action
+            android:id="@+id/action_route_gallery_to_route_edit"
+            app:destination="@id/nav_route_edit"
+            app:enterAnim="@anim/m3_shared_axis_enter"
+            app:exitAnim="@anim/m3_shared_axis_exit"
+            app:popEnterAnim="@anim/m3_shared_axis_pop_enter"
+            app:popExitAnim="@anim/m3_shared_axis_pop_exit" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_route_edit"

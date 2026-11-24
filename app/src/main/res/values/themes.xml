@@ -13,6 +13,10 @@
         <item name="colorOnSurface">@color/awalocation_on_surface</item>
         <item name="colorSurfaceVariant">@color/awalocation_surface_variant</item>
         <item name="colorOnSurfaceVariant">@color/awalocation_on_surface_variant</item>
+        <item name="colorSurfaceContainerLowest">@color/awalocation_surface</item>
+        <item name="colorSurfaceContainerLow">@color/awalocation_surface_container_low</item>
+        <item name="colorSurfaceContainer">@color/awalocation_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/awalocation_surface_container_high</item>
         <item name="colorOutline">@color/awalocation_outline</item>
         <item name="colorOutlineVariant">@color/awalocation_outline_variant</item>
         <item name="android:colorBackground">@color/awalocation_background</item>
@@ -27,17 +31,16 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="colorControlHighlight">@color/theme_focused_touch</item>
-        <item name="searchViewStyle">@style/Awalocation.SearchViewStyle</item>
         <item name="sliderStyle">@style/Awalocation.SliderTheme</item>
         <item name="materialAlertDialogTheme">@style/Awalocation.MaterialAlertDialog</item>
     </style>
 
     <style name="Awalocation.Card" parent="Widget.Material3.CardView.Elevated">
-        <item name="cardBackgroundColor">@color/awalocation_surface</item>
-        <item name="cardCornerRadius">20dp</item>
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="cardCornerRadius">22dp</item>
         <item name="cardElevation">0dp</item>
         <item name="strokeWidth">1dp</item>
-        <item name="strokeColor">@color/awalocation_outline_variant</item>
+        <item name="strokeColor">?attr/colorOutlineVariant</item>
         <item name="contentPadding">20dp</item>
         <item name="cardPreventCornerOverlap">false</item>
         <item name="cardUseCompatPadding">false</item>
@@ -50,82 +53,141 @@
 
     <style name="Awalocation.MapCard" parent="Awalocation.Card.Compact">
         <item name="cardElevation">4dp</item>
-        <item name="strokeWidth">0dp</item>
-        <item name="contentPadding">6dp</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="strokeColor">?attr/colorOutlineVariant</item>
+        <item name="contentPadding">4dp</item>
     </style>
 
-    <!-- 旧样式名保留为别名，未迁移的页面也会使用新视觉。 -->
     <style name="Awalocation.GlassCard" parent="Awalocation.Card" />
 
     <style name="Awalocation.Button" parent="Widget.Material3.Button">
         <item name="android:textAllCaps">false</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">14sp</item>
         <item name="android:minHeight">48dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
-        <item name="cornerSize">14dp</item>
+        <item name="cornerRadius">16dp</item>
         <item name="iconGravity">textStart</item>
-        <item name="iconPadding">8dp</item>
-        <item name="iconSize">20dp</item>
+        <item name="iconPadding">6dp</item>
+        <item name="iconSize">18dp</item>
     </style>
+
     <style name="Awalocation.Button.Tonal" parent="Widget.Material3.Button.TonalButton">
         <item name="android:textAllCaps">false</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">14sp</item>
         <item name="android:minHeight">48dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
-        <item name="cornerSize">14dp</item>
+        <item name="cornerRadius">16dp</item>
         <item name="iconGravity">textStart</item>
-        <item name="iconPadding">8dp</item>
-        <item name="iconSize">20dp</item>
+        <item name="iconPadding">6dp</item>
+        <item name="iconSize">18dp</item>
     </style>
+
     <style name="Awalocation.PillButton" parent="Awalocation.Button" />
     <style name="Awalocation.PillButton.Tonal" parent="Awalocation.Button.Tonal" />
+
+    <style name="Awalocation.PageTitle" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
 
     <style name="Awalocation.ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
         <item name="android:textSize">20sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/awalocation_text_color</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
     </style>
+
     <style name="Awalocation.SectionTitle" parent="TextAppearance.Material3.TitleMedium">
-        <item name="android:textColor">@color/awalocation_text_color</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
         <item name="android:textStyle">bold</item>
     </style>
+
     <style name="Awalocation.BodySecondary" parent="TextAppearance.Material3.BodyMedium">
-        <item name="android:textColor">@color/awalocation_on_surface_variant</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:lineSpacingExtra">3dp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
     </style>
+
     <style name="Awalocation.PreferenceTitle" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:textColor">@color/awalocation_text_color</item>
-    </style>
-    <style name="Awalocation.PreferenceSummary" parent="TextAppearance.Material3.BodySmall">
-        <item name="android:textColor">@color/awalocation_on_surface_variant</item>
+        <item name="android:textSize">15sp</item>
         <item name="android:lineSpacingExtra">2dp</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
     </style>
+
+    <style name="Awalocation.PreferenceSummary" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">12.5sp</item>
+        <item name="android:lineSpacingExtra">3dp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
     <style name="Awalocation.PreferenceValue" parent="TextAppearance.Material3.LabelLarge">
-        <item name="android:textColor">@color/awalocation_primary</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="Awalocation.BottomNav" parent="Widget.Material3.BottomNavigationView">
+        <item name="backgroundTint">?attr/colorSurface</item>
+        <item name="itemActiveIndicatorStyle">@style/Awalocation.BottomNav.Indicator</item>
+        <item name="itemIconTint">@color/bottom_nav_item_tint</item>
+        <item name="itemTextColor">@color/bottom_nav_item_tint</item>
+        <item name="itemPaddingTop">10dp</item>
+        <item name="itemPaddingBottom">10dp</item>
+        <item name="itemTextAppearanceActive">@style/Awalocation.BottomNav.TextActive</item>
+        <item name="itemTextAppearanceInactive">@style/Awalocation.BottomNav.TextInactive</item>
+    </style>
+
+    <style name="Awalocation.BottomNav.TextActive" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">11.5sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="Awalocation.BottomNav.TextInactive" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">11.5sp</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="Awalocation.BottomNav.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">?attr/colorPrimaryContainer</item>
     </style>
 
     <style name="Awalocation.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="shapeAppearanceCornerLarge">@style/Awalocation.ShapeAppearance.Dialog</item>
-        <item name="colorSurface">@color/awalocation_surface</item>
+        <item name="android:windowAnimationStyle">@style/Awalocation.DialogAnimation</item>
     </style>
+
+    <style name="Awalocation.DialogAnimation" parent="@android:style/Animation.Dialog">
+        <item name="android:windowEnterAnimation">@anim/m3_dialog_enter</item>
+        <item name="android:windowExitAnimation">@anim/m3_dialog_exit</item>
+    </style>
+
     <style name="Awalocation.ShapeAppearance.Dialog" parent="ShapeAppearance.Material3.Corner.Large">
         <item name="cornerSize">24dp</item>
     </style>
+
     <style name="Awalocation.ShapeAppearance.NavItem" parent="ShapeAppearance.Material3.Corner.Full">
         <item name="cornerSize">16dp</item>
     </style>
+
     <style name="Awalocation.SliderTheme" parent="Widget.Material3.Slider">
         <item name="labelBehavior">gone</item>
     </style>
-    <style name="Awalocation.SearchViewStyle" parent="Widget.AppCompat.SearchView" />
-    <style name="AppTheme.Awalocation.ToolBarOverlay" parent="ThemeOverlay.Material3.Light">
-        <item name="colorControlNormal">@color/theme_appbar_icon_color</item>
-        <item name="android:textColorPrimary">@color/theme_appbar_text_color</item>
-    </style>
-    <style name="AppTheme.Awalocation.PopupTheme" parent="ThemeOverlay.Material3.Light" />
 
-    <!-- 下列主题供悬浮窗等旧组件使用。 -->
+    <!-- 兼容悬浮窗等旧组件 -->
     <style name="AppTheme.Dark" parent="Theme.AppCompat.NoActionBar">
         <item name="colorAccent">@color/accent</item>
         <item name="windowActionModeOverlay">true</item>
@@ -155,18 +217,6 @@
         <item name="android:textSize">14sp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
-        <item name="cornerSize">14dp</item>
-    </style>
-    <style name="CardViewStyle.Dark" parent="CardView">
-        <item name="cardBackgroundColor">@color/awalocation_surface</item>
-    </style>
-    <style name="CardViewStyle.Light" parent="CardView">
-        <item name="cardBackgroundColor">@color/awalocation_surface</item>
-    </style>
-    <style name="AppTheme.StatusBar" parent="AppTheme">
-        <item name="android:statusBarColor">@android:color/transparent</item>
-    </style>
-    <style name="AppTheme.StatusBar.Dark" parent="AppTheme.Dark">
-        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="cornerRadius">14dp</item>
     </style>
 </resources>

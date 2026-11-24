@@ -44,13 +44,19 @@ class HistoricalRouteAdapter(
 
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.name.text = dataSet[position].name
-        holder.route.text = dataSet[position].route.toString()
+        val item = dataSet[position]
+        holder.name.text = item.name
+        val first = item.route.firstOrNull()
+        holder.route.text = if (first != null) {
+            "共 ${item.route.size} 个路径点 · 起点 ${"%.4f".format(first.first)}, ${"%.4f".format(first.second)}"
+        } else {
+            "共 ${item.route.size} 个路径点"
+        }
         holder.root.setOnClickListener {
-            onItemClicked(dataSet[position], false)
+            onItemClicked(item, false)
         }
         holder.root.setOnLongClickListener {
-            onItemClicked(dataSet[position], true)
+            onItemClicked(item, true)
             true
         }
     }

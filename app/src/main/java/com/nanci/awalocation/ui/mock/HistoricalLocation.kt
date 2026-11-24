@@ -60,13 +60,14 @@ data class HistoricalLocation(
     }
 
     override fun toString(): String {
-        val plainLat = BigDecimal(lat).toPlainString()
-        val plainLon = BigDecimal(lon).toPlainString()
-        
-        // Quote fields containing commas
-        val quotedName = if (name.contains(",")) "\"$name\"" else name
-        val quotedAddress = if (address.contains(",")) "\"$address\"" else address
-        
-        return "$quotedName,$quotedAddress,$plainLat,$plainLon"
+        val plainLat = BigDecimal.valueOf(lat).toPlainString()
+        val plainLon = BigDecimal.valueOf(lon).toPlainString()
+
+        fun escapeCsv(field: String): String {
+            val escaped = field.replace("\"", "\"\"")
+            return if (field.contains(",") || field.contains("\"")) "\"$escaped\"" else field
+        }
+
+        return "${escapeCsv(name)},${escapeCsv(address)},$plainLat,$plainLon"
     }
 }

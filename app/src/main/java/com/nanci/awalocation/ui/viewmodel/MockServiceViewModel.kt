@@ -1,20 +1,24 @@
 package com.nanci.awalocation.ui.viewmodel
 
 import android.app.Activity
+import android.content.res.Configuration
 import android.location.LocationManager
 import android.util.Log
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.tencent.bugly.crashreport.CrashReport
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.nanci.awalocation.android.coro.CoroutineController
 import com.nanci.awalocation.android.coro.CoroutineRouteMock
+import com.nanci.awalocation.android.widget.RockerView
 import com.nanci.awalocation.ext.accuracy
 import com.nanci.awalocation.ext.altitude
+import com.nanci.awalocation.ext.dynamicColorEnabled
 import com.nanci.awalocation.ext.reportDuration
 import com.nanci.awalocation.ext.routeLoop
 import com.nanci.awalocation.ext.speed
@@ -27,6 +31,7 @@ import net.sf.geographiclib.Geodesic
 
 class MockServiceViewModel : ViewModel() {
     lateinit var rocker: Rocker
+    private var rockerThemeKey: Pair<Int, Boolean>? = null
     private lateinit var rockerJob: Job
     private lateinit var routeMockJob: Job
     var isRockerLocked = false
@@ -35,34 +40,58 @@ class MockServiceViewModel : ViewModel() {
     val routeMockCoroutine = CoroutineRouteMock()
 
     var isRouteStart = false
+    val mockRunning = MutableLiveData(false)
+    val rockerShowing = MutableLiveData(false)
 
     @Volatile
     var locationManager: LocationManager? = null
         set(value) {
             field = value
-            if (value != null)
+            if (value != null) {
                 MockServiceHelper.tryInitService(value)
+                refreshMockState()
+            }
         }
 
     var selectedLocation: HistoricalLocation? = null
     @Volatile var selectedRoute: HistoricalRoute? = null
 
-
-    @OptIn(DelicateCoroutinesApi::class)
     fun initRocker(activity: Activity): Rocker {
+        val appContext = activity.applicationContext
+        val currentThemeKey =
+            (activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) to
+                activity.dynamicColorEnabled
+
         if (!::rocker.isInitialized) {
             rocker = Rocker(activity)
+            rockerThemeKey = currentThemeKey
+            attachRockerListeners()
+        } else if (rockerThemeKey != currentThemeKey) {
+            val wasShowing = rocker.isStart
+            val wasAuto = rocker.autoStatus
+            if (wasShowing) {
+                runCatching { rocker.hide(immediate = true) }
+            }
+            rocker = Rocker(activity)
+            rockerThemeKey = currentThemeKey
+            attachRockerListeners()
+            if (wasShowing) {
+                rocker.show()
+            }
+            if (wasAuto) {
+                rocker.autoStatus = true
+            }
+            refreshMockState()
         }
-
-        val appContext = activity.applicationContext
 
         if (!::rockerJob.isInitialized || !rockerJob.isActive) {
             rockerCoroutineController.pause()
-            val delayTime = appContext.reportDuration.toLong()
-            rockerJob = GlobalScope.launch {
-                do {
+            rockerJob = viewModelScope.launch(Dispatchers.IO) {
+                while (isActive) {
                     rockerCoroutineController.controlledCoroutine()
+                    val delayTime = appContext.reportDuration.toLong().coerceAtLeast(20L)
                     delay(delayTime)
+                    if (rockerCoroutineController.isPaused) continue
 
                     val lm = locationManager
                     if (lm == null) {
@@ -74,16 +103,10 @@ class MockServiceViewModel : ViewModel() {
                     val currentSpeed = appContext.speed
                     FakeLoc.speed = currentSpeed
                     val stepDistance = currentSpeed * (delayTime / 1000.0)
-                    if(!MockServiceHelper.move(lm, stepDistance, FakeLoc.bearing)) {
+                    if (!MockServiceHelper.move(lm, stepDistance, FakeLoc.bearing)) {
                         Log.e("MockServiceViewModel", "Failed to move")
                     }
-
-//                    if (MockServiceHelper.broadcastLocation(locationManager!!)) {
-//                        Log.d("MockServiceViewModel", "Broadcast location")
-//                    } else {
-//                        Log.e("MockServiceViewModel", "Failed to broadcast location")
-//                    }
-                } while (isActive)
+                }
             }
         }
 
@@ -93,11 +116,12 @@ class MockServiceViewModel : ViewModel() {
 
         if (!::routeMockJob.isInitialized || !routeMockJob.isActive) {
             routeMockCoroutine.pause()
-            val delayTime = appContext.reportDuration.toLong()
-            routeMockJob = GlobalScope.launch {
-                routeLoop@ do {
+            routeMockJob = viewModelScope.launch(Dispatchers.IO) {
+                routeLoop@ while (isActive) {
                     routeMockCoroutine.routeMockCoroutine()
+                    val delayTime = appContext.reportDuration.toLong().coerceAtLeast(20L)
                     delay(delayTime)
+                    if (routeMockCoroutine.isPaused) continue@routeLoop
 
                     val lm = locationManager
                     val route = selectedRoute
@@ -205,11 +229,48 @@ class MockServiceViewModel : ViewModel() {
                     if (!MockServiceHelper.move(lm, stepDistance, azimuth)) {
                         Log.e("MockServiceViewModel", "移动失败")
                     }
-                } while (isActive)
+                }
             }
         }
 
         return rocker
+    }
+
+    private fun attachRockerListeners() {
+        rocker.setRockerListener(object : RockerView.Companion.OnMoveListener {
+            override fun onAngle(angle: Double) {
+                val lm = locationManager ?: return
+                MockServiceHelper.setBearing(lm, angle)
+                FakeLoc.bearing = angle
+                FakeLoc.hasBearings = true
+            }
+
+            override fun onLockChanged(isLocked: Boolean) {
+                isRockerLocked = isLocked
+            }
+
+            override fun onFinished() {
+                if (!isRockerLocked) {
+                    rockerCoroutineController.pause()
+                }
+            }
+
+            override fun onStarted() {
+                rockerCoroutineController.resume()
+            }
+        })
+
+        rocker.setRockerAutoListener(object : Rocker.Companion.OnAutoListener {
+            override fun onAutoPlay(isPlay: Boolean) {
+                if (isPlay) {
+                    routeMockCoroutine.resume()
+                } else {
+                    routeMockCoroutine.pause()
+                }
+            }
+
+            override fun onAutoLock(isLock: Boolean) {}
+        })
     }
 
     fun isServiceStart(): Boolean {
@@ -218,8 +279,17 @@ class MockServiceViewModel : ViewModel() {
         )
     }
 
+    fun refreshMockState() {
+        mockRunning.postValue(isServiceStart())
+        if (::rocker.isInitialized) {
+            rockerShowing.postValue(rocker.isStart)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
+        rockerCoroutineController.pause()
+        routeMockCoroutine.pause()
         if (::rockerJob.isInitialized) {
             rockerJob.cancel()
         }
@@ -227,7 +297,7 @@ class MockServiceViewModel : ViewModel() {
             routeMockJob.cancel()
         }
         if (::rocker.isInitialized && rocker.isStart) {
-            runCatching { rocker.hide() }
+            runCatching { rocker.hide(immediate = true) }
         }
     }
 }

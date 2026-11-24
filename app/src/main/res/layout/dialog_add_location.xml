@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:text="@string/add_location"
         android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
-        android:textColor="@color/awalocation_text_color"
+        android:textColor="?attr/colorOnSurface"
         android:textStyle="bold" />
 
     <com.google.android.material.textfield.TextInputLayout
@@ -65,7 +65,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"
-        android:hint="@string/latlon"
+        android:hint="@string/latlon_lat_lon_hint"
         app:boxBackgroundMode="outline"
         app:boxCornerRadiusBottomEnd="14dp"
         app:boxCornerRadiusBottomStart="14dp"

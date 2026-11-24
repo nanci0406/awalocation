@@ -22,6 +22,7 @@ import com.nanci.awalocation.ext.enableRequestGeofence
 import com.nanci.awalocation.ext.enableStepMock
 import com.nanci.awalocation.ext.minSatelliteCount
 import com.nanci.awalocation.ext.needDowngradeToCdma
+import com.nanci.awalocation.ext.needOpenSELinux
 import com.nanci.awalocation.ext.speed
 import com.nanci.awalocation.ext.reportDuration
 import com.nanci.awalocation.ext.loopBroadcastlocation
@@ -198,18 +199,28 @@ object MockServiceHelper {
         if (!::randomKey.isInitialized) {
             return false
         }
-        // 普通位置/路线模拟只走 Java 层 Location 注入。
-        // native 传感器 Hook 由 startStepMock() 按需加载，避免启动模拟时
-        // 无条件把 libawalocation.so 注入 system_server。
+        // 启动模拟前先同步本地配置到 system_server，并按用户设置切换 SELinux 宽容模式；
+        // native 传感器 Hook 仅在开启步频模拟时按需加载。
+        runCatching { Awalocation.appContext }.getOrNull()?.let { appCtx ->
+            if (appCtx.needOpenSELinux && ShellUtils.hasRoot()) {
+                ShellUtils.setEnforceMode(false)
+            }
+            if (appCtx.enableStepMock) {
+                loadAwalocationLibrary(appCtx)
+            }
+            putConfig(locationManager, appCtx)
+        }
         val rely = Bundle()
         rely.putString("command_id", "start")
         rely.putDouble("speed", speed)
         rely.putDouble("altitude", altitude)
         rely.putFloat("accuracy", accuracy)
-        startLoopBroadcastLocation(locationManager)
         return if(locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)) {
             isMockStart(locationManager).also { started ->
-                if (started) FakeLoc.enable = true
+                if (started) {
+                    FakeLoc.enable = true
+                    startLoopBroadcastLocation(locationManager)
+                }
             }
         } else {
             false
@@ -419,8 +430,6 @@ object MockServiceHelper {
 
         val rely = Bundle()
         rely.putString("command_id", "put_config")
-        rely.putBoolean("enable", FakeLoc.enable)
-        rely.putBoolean("enable_gnss_mock", FakeLoc.enableMockGnss)
         rely.putDouble("altitude", FakeLoc.altitude)
         rely.putDouble("speed", FakeLoc.speed)
         rely.putFloat("accuracy", FakeLoc.accuracy)
@@ -448,7 +457,6 @@ object MockServiceHelper {
 
     private fun startLoopBroadcastLocation(locationManager: LocationManager){
         val appContext = Awalocation.appContext
-        val delayTime=appContext.reportDuration.toLong()
 
         if(isRunning) return
         if(!appContext.loopBroadcastlocation) return
@@ -459,7 +467,7 @@ object MockServiceHelper {
             while(isRunning){
                 try {
                     broadcastLocation(locationManager)
-                    Thread.sleep(delayTime)
+                    Thread.sleep(appContext.reportDuration.toLong().coerceAtLeast(20L))
                 }catch (e:InterruptedException){
                     if (FakeLoc.enableDebugLog) {
                         Log.d("MockServiceHelper","loopBoardcast: Stop")

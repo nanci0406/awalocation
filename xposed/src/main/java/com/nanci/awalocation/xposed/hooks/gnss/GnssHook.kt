@@ -55,7 +55,7 @@ object GnssHook: BaseLocationHook() {
             }.map { method ->
                 XposedBridge.hookMethod(method, object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam?) {
-                        if (param == null || param.args[0] == null) return
+                        if (param == null || param.args.isEmpty() || param.args[0] == null) return
                         val classListener = param.args[0].javaClass
 
                         if (hookedGnssCallback.contains(classListener.name)) return
@@ -72,8 +72,9 @@ object GnssHook: BaseLocationHook() {
                                         param.result = null
                                         return
                                     }
+                                    if (!FakeLoc.enable) return
 
-                                    val nmea = param.args[1] as String
+                                    val nmea = param.args.getOrNull(1) as? String ?: return
                                     param.args[1] = injectNMEA(nmea) ?: nmea
                                 }
                             })
@@ -121,9 +122,9 @@ object GnssHook: BaseLocationHook() {
             BlindHookLocation(cGnssNative, classLoader)
 
             cGnssNative.hookAllMethods("reportLocationBatch", beforeHook {
-                if (FakeLoc.enable && args.size > 1 && args[0] is Array<*>) {
+                if (FakeLoc.enable && args.isNotEmpty() && args[0] is Array<*>) {
                     @Suppress("UNCHECKED_CAST")
-                    val locations = args[0] as Array<Location>
+                    val locations = args[0] as? Array<Location> ?: return@beforeHook
                     locations.forEachIndexed { index, location ->
                         locations[index] = injectLocation(location)
                     }

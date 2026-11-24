@@ -112,31 +112,57 @@ static inline uint64_t symValueFromFile(const char *path, const char *symbol) {
     return 0;
   }
 
-  const Shdr *sh = (const Shdr *)(bytes + eh->e_shoff);
+  if (eh->e_shnum == 0 || eh->e_shentsize < sizeof(Shdr)) {
+    KLOGW(kTag, "%s invalid section header metadata", path);
+    munmap(map, fileSize);
+    return 0;
+  }
+
+  uint64_t shTableBytes = (uint64_t)eh->e_shnum * (uint64_t)eh->e_shentsize;
+  if (eh->e_shoff > fileSize || shTableBytes > fileSize - eh->e_shoff) {
+    KLOGW(kTag, "%s section header table out of bounds", path);
+    munmap(map, fileSize);
+    return 0;
+  }
+
+  auto sectionAt = [bytes, eh](uint16_t idx) -> const Shdr & {
+    return *(const Shdr *)(bytes + eh->e_shoff + (size_t)idx * (size_t)eh->e_shentsize);
+  };
+
   // Scan both .dynsym and .symtab; .dynsym is always present, .symtab usually
   // stripped. For each, find its linked string table via sh_link.
   for (uint16_t i = 0; i < eh->e_shnum && result == 0; i++) {
-    if (sh[i].sh_type != SHT_DYNSYM && sh[i].sh_type != SHT_SYMTAB)
+    const Shdr &symsh = sectionAt(i);
+    if (symsh.sh_type != SHT_DYNSYM && symsh.sh_type != SHT_SYMTAB)
       continue;
-    if (sh[i].sh_entsize == 0 || sh[i].sh_link >= eh->e_shnum)
+    if (symsh.sh_entsize < sizeof(Sym) || symsh.sh_link >= eh->e_shnum)
+      continue;
+    if (symsh.sh_offset > fileSize || symsh.sh_size > fileSize - symsh.sh_offset)
       continue;
 
-    const Sym *syms = (const Sym *)(bytes + sh[i].sh_offset);
-    size_t nsyms = (size_t)(sh[i].sh_size / sh[i].sh_entsize);
-    const Shdr &strsh = sh[sh[i].sh_link];
+    const Shdr &strsh = sectionAt((uint16_t)symsh.sh_link);
+    if (strsh.sh_offset > fileSize || strsh.sh_size > fileSize - strsh.sh_offset)
+      continue;
+
+    size_t nsyms = (size_t)(symsh.sh_size / symsh.sh_entsize);
     const char *strs = (const char *)(bytes + strsh.sh_offset);
     size_t strsCap = (size_t)strsh.sh_size;
+    size_t symLen = strlen(symbol);
 
     for (size_t s = 0; s < nsyms; s++) {
-      uint32_t nameOff = syms[s].st_name;
+      const Sym *sym = (const Sym *)(bytes + symsh.sh_offset + s * (size_t)symsh.sh_entsize);
+      uint32_t nameOff = sym->st_name;
       if (nameOff == 0 || nameOff >= strsCap)
         continue;
-      if (syms[s].st_value == 0)
+      if (sym->st_value == 0)
         continue;
-      if (AWALOCATION_ST_TYPE(syms[s].st_info) != STT_FUNC)
+      if (AWALOCATION_ST_TYPE(sym->st_info) != STT_FUNC)
         continue;
-      if (strcmp(strs + nameOff, symbol) == 0) {
-        result = (uint64_t)syms[s].st_value;
+      size_t remain = strsCap - (size_t)nameOff;
+      if (symLen < remain &&
+          memcmp(strs + nameOff, symbol, symLen) == 0 &&
+          strs[nameOff + symLen] == '\0') {
+        result = (uint64_t)sym->st_value;
         break;
       }
     }

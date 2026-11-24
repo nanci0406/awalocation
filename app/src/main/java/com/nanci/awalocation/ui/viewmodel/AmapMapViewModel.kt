@@ -26,6 +26,10 @@ class AmapMapViewModel : ViewModel() {
     /** Reverse-geocoded address of the current location, displayed on the home card. */
     val currentAddress = MutableLiveData<String?>(null)
 
+    /** Guard so reverse-geocoding failures can be retried cleanly with throttling. */
+    @Volatile var currentAddressGeocodeInFlight = false
+    @Volatile var lastCurrentGeocodeAtMs = 0L
+
     var markName: String? = null
 
     /**
@@ -43,4 +47,6 @@ class AmapMapViewModel : ViewModel() {
 
     var geocodeSearch: GeocodeSearch? = null
     var selectedMarker: Marker? = null
+    val selectedSelection = MutableLiveData<com.nanci.awalocation.amap.MapSelection?>(null)
+    var pendingFocusLocation: Pair<Double, Double>? = null
 }

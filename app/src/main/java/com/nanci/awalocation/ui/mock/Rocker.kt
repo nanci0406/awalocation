@@ -1,27 +1,38 @@
 package com.nanci.awalocation.ui.mock
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.PixelFormat
+import android.os.Handler
+import android.os.Looper
+import android.transition.AutoTransition
+import android.transition.TransitionManager
+import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.LinearLayout
-import android.widget.Toast
 import androidx.appcompat.widget.AppCompatImageView
+import com.google.android.material.color.DynamicColors
 import com.nanci.awalocation.R
+import com.nanci.awalocation.android.ui.MotionUtils
 import com.nanci.awalocation.android.widget.RockerView
+import com.nanci.awalocation.ext.dynamicColorEnabled
 import com.nanci.awalocation.ext.rockerCoords
 import kotlin.math.hypot
 
 @SuppressLint("RtlHardcoded", "ClickableViewAccessibility")
-class Rocker(private val activity: Activity) : View.OnTouchListener {
+class Rocker(context: Context) : View.OnTouchListener {
+    private val appContext = context.applicationContext
+    private val themedContext = createThemedOverlayContext(context)
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val root by lazy {
-        LayoutInflater.from(activity).inflate(R.layout.layout_rocker, null)!!
+        LayoutInflater.from(themedContext).inflate(R.layout.layout_rocker, null)!!
     }
     private val layoutParams by lazy {
         WindowManager.LayoutParams(
@@ -33,24 +44,25 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
         )
     }
     private val windowManager by lazy {
-        activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        appContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     }
 
     private var startX = 0
     private var startY = 0
     private val touchSlop by lazy {
-        ViewConfiguration.get(activity).scaledTouchSlop.toFloat()
+        ViewConfiguration.get(appContext).scaledTouchSlop.toFloat()
     }
 
     var isStart = false
     var isHide = false
     private var autoCardVisible = false
+    private var visibilityGeneration = 0
     @Volatile var autoStatus = false
         get() = field
         set(value) {
             if (field == value) return
             field = value
-            activity.runOnUiThread {
+            mainHandler.post {
                 playAuto(root.findViewById(R.id.rocker))
             }
         }
@@ -66,7 +78,7 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
         layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT
         layoutParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
-        val rockerCoords = activity.rockerCoords
+        val rockerCoords = appContext.rockerCoords
         layoutParams.format = PixelFormat.RGBA_8888
         layoutParams.gravity = Gravity.LEFT or Gravity.TOP
         layoutParams.x = rockerCoords.first
@@ -76,7 +88,6 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
 
         val rockerView = root.findViewById<RockerView>(R.id.rocker)
         val autoView = root.findViewById<AppCompatImageView>(R.id.auto)
-        val expandMenuView = root.findViewById<AppCompatImageView>(R.id.expand_menu)
         val autoCard = root.findViewById<View>(R.id.auto_card)
         val dragHandle = root.findViewById<View>(R.id.drag_handle)
         val moveView = root.findViewById<View>(R.id.move)
@@ -85,12 +96,14 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
 
         autoCard.visibility = if (autoCardVisible) View.VISIBLE else View.GONE
 
-        expandMenuView.setOnClickListener {
-            Toast.makeText(activity, "暂不支持", Toast.LENGTH_SHORT).show()
-        }
-
         autoView.setOnClickListener {
             autoCardVisible = !autoCardVisible
+            (root as? ViewGroup)?.let { container ->
+                TransitionManager.beginDelayedTransition(
+                    container,
+                    AutoTransition().setDuration(180L)
+                )
+            }
             autoCard.visibility = if (autoCardVisible) View.VISIBLE else View.GONE
         }
 
@@ -98,15 +111,11 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
         attachDrag(dragHandle)
         attachDraggableClick(moveView) {
             isHide = !isHide
-            switchHide(rockerView, autoView, expandMenuView)
+            switchHide(rockerView, autoView)
         }
 
         autoPlayView.setOnClickListener {
             autoStatus = !autoStatus
-        }
-
-        root.findViewById<View>(R.id.auto_status).setOnClickListener {
-            // 保留扩展
         }
 
         autoLockView.setOnClickListener {
@@ -120,10 +129,6 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
         }
     }
 
-    /**
-     * 为视图绑定“兼顾拖动与点击”的手势监听：
-     * 手指滑动超过阈值时拖拽悬浮窗，未滑动时触发点击。
-     */
     private fun attachDraggableClick(view: View, onClick: () -> Unit) {
         attachDrag(view, onClick)
     }
@@ -176,7 +181,7 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
 
     private fun moveWindowTo(x: Int, y: Int) {
         if (!isStart) return
-        val metrics = activity.resources.displayMetrics
+        val metrics = appContext.resources.displayMetrics
         val maxX = (metrics.widthPixels - root.width).coerceAtLeast(0)
         val maxY = (metrics.heightPixels - root.height).coerceAtLeast(0)
         layoutParams.x = x.coerceIn(0, maxX)
@@ -198,48 +203,106 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
 
     private fun switchHide(
         rockerView: RockerView,
-        autoView: AppCompatImageView,
-        expandMenuView: AppCompatImageView
+        autoView: AppCompatImageView
     ) {
         val bar = root.findViewById<LinearLayout>(R.id.rocker_bar)
         val autoCard = root.findViewById<View>(R.id.auto_card)
 
+        (root as? ViewGroup)?.let { container ->
+            TransitionManager.beginDelayedTransition(
+                container,
+                AutoTransition().setDuration(190L)
+            )
+        }
+
         if (isHide) {
-            // 缩小态：隐藏大摇杆及次要按钮，将控制行排布为横向精简胶囊
+            // 缩小态：隐藏大摇杆，将控制行排布为横向精简胶囊
             autoCard.visibility = View.VISIBLE
             autoView.visibility = View.GONE
             rockerView.visibility = View.GONE
-            expandMenuView.visibility = View.GONE
             bar.orientation = LinearLayout.HORIZONTAL
         } else {
             // 展开态：还原大摇杆及主控按钮，autoCard 还原为用户选择的可见性
             autoView.visibility = View.VISIBLE
             rockerView.visibility = View.VISIBLE
-            expandMenuView.visibility = View.VISIBLE
             autoCard.visibility = if (autoCardVisible) View.VISIBLE else View.GONE
             bar.orientation = LinearLayout.VERTICAL
         }
     }
 
-    fun show() {
-        windowManager.addView(root, layoutParams)
-        isStart = true
-        root.post { moveWindowTo(layoutParams.x, layoutParams.y) }
+    fun show(): Boolean {
+        if (isStart) return true
+        visibilityGeneration++
+        return runCatching {
+            root.animate().cancel()
+            if (root.parent == null) {
+                windowManager.addView(root, layoutParams)
+            }
+            isStart = true
+            root.alpha = 0f
+            root.scaleX = 0.86f
+            root.scaleY = 0.86f
+            root.post {
+                moveWindowTo(layoutParams.x, layoutParams.y)
+                root.animate()
+                    .alpha(1f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(220L)
+                    .setInterpolator(MotionUtils.EMPHASIZED_DECELERATE)
+                    .withEndAction(null)
+                    .start()
+            }
+            true
+        }.getOrDefault(false)
     }
 
-    fun hide() {
+    fun hide(immediate: Boolean = false) {
+        if (!isStart) return
+        isStart = false
+        val gen = ++visibilityGeneration
         val rockerView = root.findViewById<RockerView>(R.id.rocker)
         rockerView.reset()
-        windowManager.removeView(root)
-        isStart = false
+        root.animate().cancel()
+        if (immediate) {
+            runCatching {
+                if (root.parent != null) {
+                    windowManager.removeView(root)
+                }
+            }
+            root.alpha = 1f
+            root.scaleX = 1f
+            root.scaleY = 1f
+            return
+        }
+        root.animate()
+            .alpha(0f)
+            .scaleX(0.88f)
+            .scaleY(0.88f)
+            .setDuration(150L)
+            .setInterpolator(MotionUtils.EMPHASIZED_ACCELERATE)
+            .withEndAction {
+                if (gen != visibilityGeneration || isStart) return@withEndAction
+                runCatching {
+                    if (root.parent != null) {
+                        windowManager.removeView(root)
+                    }
+                }
+                root.alpha = 1f
+                root.scaleX = 1f
+                root.scaleY = 1f
+            }
+            .start()
     }
 
     fun savePosition() {
-        activity.rockerCoords = Pair(layoutParams.x, layoutParams.y)
+        appContext.rockerCoords = Pair(layoutParams.x, layoutParams.y)
     }
 
     fun updateView() {
-        windowManager.updateViewLayout(root, layoutParams)
+        if (isStart) {
+            windowManager.updateViewLayout(root, layoutParams)
+        }
     }
 
     fun setRockerListener(listener: RockerView.Companion.OnMoveListener) {
@@ -253,22 +316,27 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
 
     fun invokeOnTouchEvent(joystickX: Float, joystickY: Float) {
         val rockerView = root.findViewById<RockerView>(R.id.rocker)
-        // 模拟摇杆移动 调用onTouchEvent
-        rockerView.onTouchEvent(
-            MotionEvent.obtain(1000, 1000, MotionEvent.ACTION_DOWN, joystickX, joystickY, 0)
-        )
-        rockerView.onTouchEvent(
-            MotionEvent.obtain(1000, 1000, MotionEvent.ACTION_MOVE, joystickX, joystickY, 0)
-        )
+        val downEvent = MotionEvent.obtain(1000, 1000, MotionEvent.ACTION_DOWN, joystickX, joystickY, 0)
+        val moveEvent = MotionEvent.obtain(1000, 1000, MotionEvent.ACTION_MOVE, joystickX, joystickY, 0)
+        try {
+            rockerView.onTouchEvent(downEvent)
+            rockerView.onTouchEvent(moveEvent)
+        } finally {
+            downEvent.recycle()
+            moveEvent.recycle()
+        }
         rockerView.auto(true)
     }
 
     fun upController() {
         val rockerView = root.findViewById<RockerView>(R.id.rocker)
-        rockerView.onTouchEvent(
-            MotionEvent.obtain(1000, 1000, MotionEvent.ACTION_UP, 0f, 0f, 0)
-        )
-        rockerView.auto(true)
+        val upEvent = MotionEvent.obtain(1000, 1000, MotionEvent.ACTION_UP, 0f, 0f, 0)
+        try {
+            rockerView.onTouchEvent(upEvent)
+        } finally {
+            upEvent.recycle()
+        }
+        rockerView.auto(false)
     }
 
     override fun onTouch(v: View?, event: MotionEvent?): Boolean {
@@ -299,6 +367,17 @@ class Rocker(private val activity: Activity) : View.OnTouchListener {
     }
 
     companion object {
+        private fun createThemedOverlayContext(base: Context): Context {
+            val config = Configuration(base.resources.configuration)
+            val appConfigCtx = base.applicationContext.createConfigurationContext(config)
+            val themed = ContextThemeWrapper(appConfigCtx, R.style.AppTheme)
+            return if (base.dynamicColorEnabled && DynamicColors.isDynamicColorAvailable()) {
+                DynamicColors.wrapContextIfAvailable(themed)
+            } else {
+                themed
+            }
+        }
+
         interface OnAutoListener {
             fun onAutoPlay(isPlay: Boolean)
             fun onAutoLock(isLock: Boolean)

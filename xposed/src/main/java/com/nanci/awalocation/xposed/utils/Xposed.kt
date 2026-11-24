@@ -35,12 +35,18 @@ private fun <T> ifNotHook(
  * @return Unhook object, you can use it to unhook the method.
  */
 fun Method.onceHook(callback: XC_MethodHook): XC_MethodHook.Unhook? {
-    return ifNotHook(declaringClass.name, name, parameterTypes) {
-        hookOnceLock.lock()
-        hookedMethods.add(it)
-        val unhook = XposedBridge.hookMethod(this, callback)
+    val key = generateOnceHookMethodKey(declaringClass.name, name, parameterTypes)
+    if (hookedMethods.contains(key)) return null
+    hookOnceLock.lock()
+    return try {
+        if (hookedMethods.contains(key)) {
+            null
+        } else {
+            hookedMethods.add(key)
+            XposedBridge.hookMethod(this, callback)
+        }
+    } finally {
         hookOnceLock.unlock()
-        return@ifNotHook unhook
     }
 }
 
@@ -87,15 +93,18 @@ fun Method.onceHookAfter(callback: XC_MethodHook.MethodHookParam.() -> Unit): XC
 fun <T> Class<T>.onceHookAllMethod(methodName: String, callback: XC_MethodHook): Set<XC_MethodHook.Unhook> {
     val unhooks = mutableSetOf<XC_MethodHook.Unhook>()
     hookOnceLock.lock()
-    declaredMethods.forEach { method ->
-        if (method.name == methodName) {
-            ifNotHook(name, methodName, method.parameterTypes) { key ->
-                method.hook(callback)?.let { unhooks.add(it) }
-                hookedMethods.add(key)
+    try {
+        declaredMethods.forEach { method ->
+            if (method.name == methodName) {
+                ifNotHook(name, methodName, method.parameterTypes) { key ->
+                    method.hook(callback)?.let { unhooks.add(it) }
+                    hookedMethods.add(key)
+                }
             }
         }
+    } finally {
+        hookOnceLock.unlock()
     }
-    hookOnceLock.unlock()
     return unhooks
 }
 
@@ -398,11 +407,17 @@ fun Method.diyHook(
         })
     }
     if (soleHook) {
-        ifNotHook(declaringClass.name, name, parameterTypes) { key ->
+        val key = generateOnceHookMethodKey(declaringClass.name, name, parameterTypes)
+        if (!hookedMethods.contains(key)) {
             hookOnceLock.lock()
-            baseHooker()
-            hookedMethods.add(key)
-            hookOnceLock.unlock()
+            try {
+                if (!hookedMethods.contains(key)) {
+                    baseHooker()
+                    hookedMethods.add(key)
+                }
+            } finally {
+                hookOnceLock.unlock()
+            }
         }
     } else baseHooker()
     return unhook

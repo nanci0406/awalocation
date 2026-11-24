@@ -25,6 +25,7 @@ object RemoteCommandHandler {
     internal val randomKey by lazy { "awalocation_" + Random.nextDouble() }
 
     fun ensureNativeLibraryLoaded(): Boolean {
+        if (!FakeLoc.isSystemServerProcess) return false
         if (Dobby.isLoaded) return true
         val candidates = listOf(
             java.io.File("/data/local/awalocation-lib/libawalocation.so")
@@ -100,6 +101,19 @@ object RemoteCommandHandler {
             Logger.debug("commandId=$commandId, rely=$rely")
         }
 
+        return executeInstruction(commandId, rely)
+    }
+
+    fun handleForwardedInstruction(rely: Bundle): Boolean {
+        val commandId = rely.getString("command_id") ?: return false
+        if (FakeLoc.enableDebugLog) {
+            Logger.debug("forwarded commandId=$commandId, rely=$rely")
+        }
+        return executeInstruction(commandId, rely)
+    }
+
+    @SuppressLint("UnsafeDynamicallyLoadedCode")
+    private fun executeInstruction(commandId: String, rely: Bundle): Boolean {
         when (commandId) {
             "set_proxy" -> {
                 Logger.info("SubProxyBinder: ${rely.getBinder("proxy")} from ${BinderUtils.getUidPackageNames()}!")
@@ -240,6 +254,10 @@ object RemoteCommandHandler {
             "set_speed" -> {
                 val speed = rely.getDouble("speed", 0.0)
                 FakeLoc.speed = speed
+                if (FakeLoc.isSystemServerProcess && Dobby.isLoaded && FakeLoc.enableMockStep && FakeLoc.stepCadence <= 0f) {
+                    val spm = (FakeLoc.speed * 35.0 + 70.0).toFloat().coerceIn(60f, 220f)
+                    Dobby.init(spm, mode = 0, scheme = 0, enabled = true)
+                }
                 return true
             }
             "set_bearing" -> {
@@ -289,8 +307,8 @@ object RemoteCommandHandler {
                         if (newLat == 0.0 || newLon == 0.0) {
                             return false
                         }
-                        newLat /= FakeLoc.latitude
-                        newLon /= FakeLoc.longitude
+                        newLat = FakeLoc.latitude / newLat
+                        newLon = FakeLoc.longitude / newLon
                         return updateCoordinate(newLat, newLon)
                     }
                     "=" -> {
@@ -350,6 +368,7 @@ object RemoteCommandHandler {
                         Dobby.setRouteSimulation(true, spm, mode = 0)
                         Dobby.setStepSimEnabled(true)
                         Dobby.setMocking(FakeLoc.enable)
+                        Dobby.setStatus(FakeLoc.enable)
                     }
                     StepSensorHook.wakeFeeder()
                 } else {
@@ -395,10 +414,13 @@ object RemoteCommandHandler {
                 return true
             }
             "broadcast_location" -> {
-                LocationServiceHook.callOnLocationChanged()
+                if (FakeLoc.isSystemServerProcess) {
+                    LocationServiceHook.callOnLocationChanged()
+                }
                 return true
             }
             "load_library" -> {
+                if (!FakeLoc.isSystemServerProcess) return false
                 val path = rely.getString("path") ?: return false
                 val allowedFile = runCatching {
                     File("/data/local/awalocation-lib/libawalocation.so").canonicalFile

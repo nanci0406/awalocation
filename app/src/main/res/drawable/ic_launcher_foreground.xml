@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 安全区内居中绘制 (21..87)，适配圆形/方圆/水滴等任意系统遮罩 -->
+
+    <!-- 底部虚拟坐标平面雷达波纹 -->
+    <path
+        android:fillColor="#1AFFFFFF"
+        android:pathData="M37.5,77.5 A16.5,4.6 0 1,0 70.5,77.5 A16.5,4.6 0 1,0 37.5,77.5 Z"
+        android:strokeWidth="1.35"
+        android:strokeColor="#73FFFFFF" />
+
+    <!-- 定位针底部柔和接地投影 -->
+    <path
+        android:fillColor="#38081F5C"
+        android:pathData="M46.5,77.4 A7.5,2.1 0 1,0 61.5,77.4 A7.5,2.1 0 1,0 46.5,77.4 Z" />
+
+    <!-- 主体极简几何定位针（柔和纯白到冰白立体渐变） -->
+    <path android:pathData="M54,26.5 A19,19 0 0,1 73,45.5 C73,57.0 64.2,67.2 55.6,75.2 Q54,76.7 52.4,75.2 C43.8,67.2 35,57.0 35,45.5 A19,19 0 0,1 54,26.5 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="54"
+                android:endY="76.5"
+                android:startX="54"
+                android:startY="26.5"
+                android:type="linear">
+                <item
+                    android:color="#FFFFFFFF"
+                    android:offset="0.0" />
+                <item
+                    android:color="#FFE6F0FF"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 定位针中央深蓝光学透镜孔 -->
+    <path android:pathData="M54,36.8 A8.7,8.7 0 1,0 54,54.2 A8.7,8.7 0 1,0 54,36.8 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="61"
+                android:endY="53"
+                android:startX="47"
+                android:startY="38"
+                android:type="linear">
+                <item
+                    android:color="#FF1E64F0"
+                    android:offset="0.0" />
+                <item
+                    android:color="#FF0E3899"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 透镜内高精度纯白信标核心 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,41.8 A3.7,3.7 0 1,0 54,49.2 A3.7,3.7 0 1,0 54,41.8 Z" />
+
+    <!-- 右上方 GNSS 卫星轨道微光节点 -->
+    <path
+        android:fillColor="#4D7DD3FC"
+        android:pathData="M73,26.2 A4.8,4.8 0 1,0 73,35.8 A4.8,4.8 0 1,0 73,26.2 Z" />
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M73,28.4 A2.6,2.6 0 1,0 73,33.6 A2.6,2.6 0 1,0 73,28.4 Z" />
+
+</vector>

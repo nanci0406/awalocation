@@ -1,5 +1,7 @@
 package com.nanci.awalocation.nmea
 
+import java.util.Locale
+
 data class NMEA(
     val talkerId: String,
     val value: NmeaValue
@@ -11,7 +13,7 @@ data class NMEA(
             for (char in sentence) {
                 checksum = checksum xor char.code
             }
-            return String.format("%02X", checksum)
+            return String.format(Locale.US, "%02X", checksum)
         }
 
         fun valueOf(value: String): NMEA {
@@ -21,6 +23,9 @@ data class NMEA(
 
             val sentence = value.trimStart('$').substringBefore('*')
             val sequences = sentence.split(",")
+            if (sequences.isEmpty() || sequences[0].length < 3) {
+                throw IllegalArgumentException("Invalid NMEA header: $value")
+            }
 
             val (talkerId, statementId) = sequences[0].let {
                 it.substring(0, 2) to it.substring(2)
@@ -28,6 +33,7 @@ data class NMEA(
 
             when (statementId) {
                 "DTM" -> {
+                    require(sequences.size >= 9) { "Invalid DTM sentence: $value" }
                     val localCoordinateSystemCode = sequences[1]
                     val coordinateSystemSubCode = sequences[2]
                     val latitudeOffset = sequences[3].toDoubleOrNull()
@@ -48,12 +54,13 @@ data class NMEA(
                     ))
                 }
                 "GGA" -> {
+                    require(sequences.size >= 15) { "Invalid GGA sentence: $value" }
                     val utc = sequences[1]
                     val latitude = sequences[2].toDoubleOrNull()
                     val latitudeHemisphere = sequences[3]
                     val longitude = sequences[4].toDoubleOrNull()
                     val longitudeHemisphere = sequences[5]
-                    val fixQuality = sequences[6].toInt()
+                    val fixQuality = sequences[6].toIntOrNull() ?: 0
                     val satellites = sequences[7].toIntOrNull()
                     val hdop = sequences[8].toDoubleOrNull()
                     val antennaAltitude = sequences[9].toDoubleOrNull()
@@ -80,6 +87,7 @@ data class NMEA(
                     ))
                 }
                 "GNS" -> {
+                    require(sequences.size >= 13) { "Invalid GNS sentence: $value" }
                     val utc = sequences[1]
                     val latitude = sequences[2].toDoubleOrNull()
                     val latitudeHemisphere = sequences[3]
@@ -112,8 +120,9 @@ data class NMEA(
                     ))
                 }
                 "GSA" -> {
+                    require(sequences.size >= 18) { "Invalid GSA sentence: $value" }
                     val mode = sequences[1]
-                    val fixStatus = sequences[2].toInt()
+                    val fixStatus = sequences[2].toIntOrNull() ?: 1
                     val prn = sequences.subList(3, 15).map { it.toIntOrNull() }
                     val pdop = sequences[15].toDoubleOrNull()
                     val hdop = sequences[16].toDoubleOrNull()
@@ -124,23 +133,30 @@ data class NMEA(
                     return NMEA(talkerId, NmeaValue.GSA(mode, fixStatus, prn, pdop, hdop, vdop, systemId))
                 }
                 "GSV" -> {
-                    val totalMessages = sequences[1].toInt()
-                    val messageNumber = sequences[2].toInt()
-                    val totalSatellitesInView = sequences[3].toInt()
-                    val satellites = sequences.subList(4, sequences.size - 1).chunked(4).map {
+                    require(sequences.size >= 4) { "Invalid GSV sentence: $value" }
+                    val totalMessages = sequences[1].toIntOrNull()
+                        ?: throw IllegalArgumentException("Invalid GSV totalMessages: $value")
+                    val messageNumber = sequences[2].toIntOrNull()
+                        ?: throw IllegalArgumentException("Invalid GSV messageNumber: $value")
+                    val totalSatellitesInView = sequences[3].toIntOrNull()
+                        ?: throw IllegalArgumentException("Invalid GSV totalSatellitesInView: $value")
+                    val hasInfoId = (sequences.size - 4) % 4 != 0
+                    val satEnd = if (hasInfoId) sequences.size - 1 else sequences.size
+                    val satellites = sequences.subList(4, satEnd).chunked(4).map {
+                        require(it.size == 4) { "Invalid GSV satellite block: $value" }
                         NmeaValue.GSV.Satellite(
-                            prn = it[0].toInt(),
-                            elevation = it[1].toInt(),
-                            azimuth = it[2].toInt(),
+                            prn = it[0].toIntOrNull()
+                                ?: throw IllegalArgumentException("Invalid GSV prn: $value"),
+                            elevation = it[1].toIntOrNull() ?: 0,
+                            azimuth = it[2].toIntOrNull() ?: 0,
                             snr = it[3].toIntOrNull()
                         )
                     }
-                    val infoId = if((sequences.size - 4) % 4 != 0) {
-                        sequences.last()
-                    } else "0"
+                    val infoId = if (hasInfoId) sequences.last() else null
                     return NMEA(talkerId, NmeaValue.GSV(totalMessages, messageNumber, totalSatellitesInView, satellites, infoId))
                 }
                 "RMC" -> {
+                    require(sequences.size >= 12) { "Invalid RMC sentence: $value" }
                     val utc = sequences[1]
                     val status = sequences[2]
                     val latitude = sequences[3].toDoubleOrNull()
@@ -175,6 +191,7 @@ data class NMEA(
                     ))
                 }
                 "VTG" -> {
+                    require(sequences.size >= 10) { "Invalid VTG sentence: $value" }
                     val trueTrack = sequences[1].toDoubleOrNull()
                     val trueTrackMode = sequences[2]
                     val magneticTrack = sequences[3].toDoubleOrNull()

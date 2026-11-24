@@ -1,11 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- 深色模式下 AppTheme 由 DayNight 自动切换；夜间配色见 values-night/colors.xml -->
-    <style name="Theme.Awalocation" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/awalocation_primary</item>
         <item name="colorOnPrimary">@color/awalocation_on_primary</item>
+        <item name="colorPrimaryContainer">@color/awalocation_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/awalocation_on_primary_container</item>
+        <item name="colorSecondary">@color/awalocation_secondary</item>
+        <item name="colorOnSecondary">@color/awalocation_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/awalocation_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/awalocation_on_secondary_container</item>
+        <item name="colorSurface">@color/awalocation_surface</item>
+        <item name="colorOnSurface">@color/awalocation_on_surface</item>
+        <item name="colorSurfaceVariant">@color/awalocation_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/awalocation_on_surface_variant</item>
+        <item name="colorSurfaceContainerLowest">@color/awalocation_background</item>
+        <item name="colorSurfaceContainerLow">@color/awalocation_surface_container_low</item>
+        <item name="colorSurfaceContainer">@color/awalocation_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/awalocation_surface_container_high</item>
+        <item name="colorOutline">@color/awalocation_outline</item>
+        <item name="colorOutlineVariant">@color/awalocation_outline_variant</item>
+        <item name="android:colorBackground">@color/awalocation_background</item>
+        <item name="android:windowBackground">@color/awalocation_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
+        <item name="windowActionModeOverlay">true</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+        <item name="colorControlHighlight">@color/theme_focused_touch</item>
+        <item name="sliderStyle">@style/Awalocation.SliderTheme</item>
+        <item name="materialAlertDialogTheme">@style/Awalocation.MaterialAlertDialog</item>
     </style>
 </resources>

@@ -28,9 +28,15 @@ android {
 //            throw GradleException("在 CI 环境中必须提供 google-services.json 文件!")
 //        }
 
-        manifestPlaceholders["BUGLY_APPID"] = "222f9ef298"
+        manifestPlaceholders["BUGLY_APPID"] = providers.gradleProperty("BUGLY_APPID")
+            .orElse(providers.environmentVariable("BUGLY_APPID"))
+            .orElse(resolveLocalProperty(rootProject.file("local.properties"), "BUGLY_APPID"))
+            .orElse("")
+            .get()
+            .trim()
         manifestPlaceholders["AMAP_API_KEY"] = providers.gradleProperty("AMAP_API_KEY")
             .orElse(providers.environmentVariable("AMAP_API_KEY"))
+            .orElse(resolveLocalProperty(rootProject.file("local.properties"), "AMAP_API_KEY"))
             .orElse("YOUR_AMAP_KEY")
             .get()
             .trim()
@@ -173,7 +179,6 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.drawerlayout)
     implementation("androidx.activity:activity-ktx:1.9.3")
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
@@ -221,5 +226,15 @@ fun getVersionCode(): Int {
 
 fun getVersionName(): String {
     return getGitCommitHash()
+}
+
+fun resolveLocalProperty(localPropertiesFile: java.io.File, key: String): String {
+    if (!localPropertiesFile.isFile) return ""
+    val prefix = "$key="
+    return localPropertiesFile.readLines()
+        .firstOrNull { it.trimStart().startsWith(prefix) }
+        ?.substringAfter("=")
+        ?.trim()
+        .orEmpty()
 }
 

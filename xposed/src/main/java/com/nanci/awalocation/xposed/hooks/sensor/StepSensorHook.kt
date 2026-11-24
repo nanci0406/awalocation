@@ -12,7 +12,7 @@ import de.robv.android.xposed.XposedHelpers
 import com.nanci.awalocation.xposed.BaseDivineService
 import com.nanci.awalocation.xposed.utils.FakeLoc
 import com.nanci.awalocation.xposed.utils.Logger
-import com.nanci.awalocation.xposed.utils.hookAllMethodsBefore
+import com.nanci.awalocation.xposed.utils.onceHookMethodBefore
 import com.nanci.awalocation.xposed.utils.hookBefore
 import java.lang.reflect.Constructor
 import java.util.concurrent.ConcurrentHashMap
@@ -168,7 +168,7 @@ object StepSensorHook : BaseDivineService() {
             val name = clazz.name
             if (name.startsWith("android.") || name.startsWith("java.")) break
             if (hookedListenerClasses.add(name)) {
-                clazz.hookAllMethodsBefore("onSensorChanged") {
+                clazz.onceHookMethodBefore("onSensorChanged", SensorEvent::class.java) {
                     interceptStepEvent(this)
                 }
             }

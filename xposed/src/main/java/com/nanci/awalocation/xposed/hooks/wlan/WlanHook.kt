@@ -60,7 +60,7 @@ object WlanHook {
         if (!FakeLoc.hookWifi) return
 
         wifiClazz.hookAllMethods("getConnectionInfo", beforeHook {
-            val packageName = args[0] as String
+            val packageName = args.getOrNull(0) as? String ?: return@beforeHook
             if (FakeLoc.enableDebugLog)
                 Logger.debug("In getConnectionInfo with caller: $packageName, state: ${FakeLoc.enableMockWifi}")
 
@@ -73,7 +73,7 @@ object WlanHook {
         })
 
         wifiClazz.hookAllMethods("getScanResults", afterHook {
-            val packageName = args[0] as? String
+            val packageName = args.getOrNull(0) as? String
             if (packageName.isNullOrEmpty()) {
                 return@afterHook
             }
@@ -81,7 +81,7 @@ object WlanHook {
             if (FakeLoc.enableDebugLog)
                 Logger.debug("In getScanResults with caller: $packageName, state: ${FakeLoc.enableMockWifi}")
 
-            if(FakeLoc.enableMockWifi) {
+            if (FakeLoc.enableMockWifi && !BinderUtils.isSystemPackages(packageName)) {
                 if(result == null) {
                     return@afterHook 
                 }

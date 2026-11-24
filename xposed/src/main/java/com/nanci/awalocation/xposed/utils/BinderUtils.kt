@@ -33,8 +33,8 @@ object BinderUtils {
         return null
     }
 
-    fun getUidPackageNames(context: Context = getSystemContext()!!, uid: Int = getCallerUid()): Array<String>? {
-        val packageManager = context.packageManager
+    fun getUidPackageNames(context: Context? = getSystemContext(), uid: Int = getCallerUid()): Array<String>? {
+        val packageManager = context?.packageManager ?: return null
         return packageManager.getPackagesForUid(uid)
     }
 
@@ -51,13 +51,13 @@ object BinderUtils {
      */
     fun isLocationProviderEnabled(uid: Int): Boolean {
         val packageNames = getUidPackageNames(uid = uid)
-        if (uid > 10000 && packageNames?.any {
-                !it.contains("com.nanci.awalocation")
-            } == false) {
+        if (uid > 10000 && packageNames != null && packageNames.isNotEmpty() && packageNames.all {
+                it == "com.nanci.awalocation"
+            }) {
             return true
         }
         Logger.warn("Someone try to find Awalocation: uid = $uid, packageName = ${packageNames?.joinToString()}")
-        return uid < 10000
+        return uid in 0 until 10000
     }
 
     fun isSystemPackages(packageNames: String): Boolean {

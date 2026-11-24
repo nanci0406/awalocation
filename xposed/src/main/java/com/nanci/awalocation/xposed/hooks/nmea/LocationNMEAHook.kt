@@ -54,6 +54,7 @@ object LocationNMEAHook: BaseLocationHook() {
                 }
 
                 cIGnssNmeaCallback.onceHookMethodBefore("onNmeaReceived", Long::class.java, String::class.java) {
+                    if (!FakeLoc.enable) return@onceHookMethodBefore
                     if (!FakeLoc.enableNMEA && !FakeLoc.enableAGPS) {
                         result = null // disable
                         return@onceHookMethodBefore

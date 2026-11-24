@@ -2,14 +2,16 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/route_mock_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/awalocation_background"
+    android:background="?android:attr/colorBackground"
     android:clipChildren="false"
     android:clipToPadding="false"
     tools:context=".ui.mock.RouteMockFragment">
 
     <LinearLayout
+        android:id="@+id/route_content_root"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -17,17 +19,62 @@
         android:paddingTop="16dp"
         android:paddingEnd="16dp">
 
-        <!-- 目标路线卡片 -->
+        <!-- 顶部页面标题栏 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/menu_route_mock"
+                android:textAppearance="@style/Awalocation.PageTitle" />
+
+            <LinearLayout
+                android:id="@+id/route_status_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_status_pill_idle"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="10dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="5dp">
+
+                <View
+                    android:id="@+id/route_status_dot"
+                    android:layout_width="7dp"
+                    android:layout_height="7dp"
+                    android:background="@drawable/bg_live_dot" />
+
+                <TextView
+                    android:id="@+id/route_status_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/status_idle"
+                    android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 目标路线 Hero 卡片 -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/mock_location_card"
             style="@style/Awalocation.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/awalocation_surface"
-            app:cardCornerRadius="20dp"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:cardCornerRadius="24dp"
             app:cardElevation="0dp"
             app:contentPadding="18dp"
-            app:strokeColor="@color/awalocation_outline_variant"
+            app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -35,67 +82,38 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:background="@drawable/bg_header_mark"
-                        android:contentDescription="@null"
-                        android:padding="11dp"
-                        app:srcCompat="@drawable/baseline_route_24"
-                        app:tint="@color/awalocation_primary" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/target_route"
-                            android:textAppearance="@style/Awalocation.SectionTitle" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="沿预设路线与速度自动移动"
-                            android:textAppearance="@style/Awalocation.BodySecondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </LinearLayout>
+                    android:text="@string/target_route"
+                    android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+                    android:textColor="?attr/colorPrimary"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/mock_route_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="10dp"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="@string/none_route"
                     android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
-                    android:textColor="@color/awalocation_text_color"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/mock_route_subtitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="可在下方列表选择已有路线或新建路线"
+                    android:text="沿预设路线与速度自动移动"
                     android:textAppearance="@style/Awalocation.BodySecondary" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="16dp"
                     android:baselineAligned="false"
                     android:orientation="horizontal">
 
@@ -105,57 +123,69 @@
                         android:layout_width="0dp"
                         android:layout_height="48dp"
                         android:layout_weight="1"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:singleLine="true"
                         android:text="@string/start_mock"
-                        app:cornerRadius="14dp"
-                        app:elevation="1dp"
                         app:icon="@drawable/rounded_play_arrow_24" />
 
                     <CheckedTextView
                         android:id="@+id/rocker"
                         android:layout_width="0dp"
                         android:layout_height="48dp"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="10dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_rocker_toggle"
-                        android:checked="false"
                         android:checkMark="@drawable/baseline_control_camera_24"
                         android:checkMarkTint="@color/rocker_text_color"
+                        android:checked="false"
+                        android:ellipsize="end"
                         android:gravity="center"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
+                        android:maxLines="1"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:singleLine="true"
                         android:text="@string/rocker"
                         android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-                        android:textColor="@color/rocker_text_color" />
+                        android:textColor="@color/rocker_text_color"
+                        android:textSize="14sp" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0.8dp"
+                    android:layout_marginTop="14dp"
+                    android:background="?attr/colorOutlineVariant" />
 
                 <com.google.android.material.checkbox.MaterialCheckBox
                     android:id="@+id/route_loop"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:minHeight="44dp"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="36dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="4dp"
                     android:text="@string/route_loop"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                    android:textColor="@color/awalocation_text_color"
-                    app:buttonTint="@color/awalocation_primary" />
+                    android:textColor="?attr/colorOnSurface"
+                    app:buttonTint="?attr/colorPrimary" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:layout_marginTop="0dp"
+                    android:layout_marginStart="34dp"
+                    android:layout_marginTop="2dp"
                     android:text="@string/route_loop_desc"
-                    android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-                    android:textColor="@color/awalocation_on_surface_variant" />
+                    android:textAppearance="@style/Awalocation.PreferenceSummary" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 历史路线列表标题 -->
+        <!-- 常用路线列表标题 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="20dp"
             android:layout_marginEnd="4dp"
             android:layout_marginBottom="10dp"
             android:gravity="center_vertical"
@@ -171,58 +201,72 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="左右滑动删除"
+                android:text="@string/swipe_to_delete"
                 android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-                android:textColor="@color/awalocation_hint_color" />
+                android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/historical_route_list"
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingBottom="96dp"
-            android:scrollbars="none" />
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/historical_route_list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:layoutAnimation="@anim/layout_anim_list_enter"
+                android:paddingBottom="88dp"
+                android:scrollbars="none" />
+
+            <LinearLayout
+                android:id="@+id/empty_routes_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="24dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_header_mark"
+                    android:contentDescription="@null"
+                    android:padding="13dp"
+                    app:srcCompat="@drawable/baseline_route_24"
+                    app:tint="?attr/colorPrimary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/empty_routes_title"
+                    android:textAppearance="@style/Awalocation.SectionTitle" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:gravity="center"
+                    android:text="@string/empty_routes_desc"
+                    android:textAppearance="@style/Awalocation.BodySecondary" />
+            </LinearLayout>
+        </FrameLayout>
     </LinearLayout>
 
-    <!-- 底部悬浮操作按钮组（纵向向上弹出，保留完整阴影且永不溢出边缘） -->
-    <LinearLayout
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_add_route"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="24dp"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:gravity="center_horizontal"
-        android:orientation="vertical">
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_add_route"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="14dp"
-            android:contentDescription="@string/add_route"
-            android:visibility="gone"
-            app:backgroundTint="@color/awalocation_surface"
-            app:borderWidth="0dp"
-            app:elevation="4dp"
-            app:fabSize="mini"
-            app:srcCompat="@drawable/baseline_add_location_24"
-            app:tint="@color/awalocation_primary" />
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/quick_actions"
-            app:backgroundTint="@color/awalocation_primary"
-            app:borderWidth="0dp"
-            app:elevation="6dp"
-            app:fabSize="normal"
-            app:srcCompat="@drawable/baseline_keyboard_arrow_up_24"
-            app:tint="@color/awalocation_on_primary" />
-    </LinearLayout>
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:text="@string/add_route"
+        android:textColor="?attr/colorOnPrimary"
+        app:backgroundTint="?attr/colorPrimary"
+        app:icon="@drawable/baseline_add_location_24"
+        app:iconTint="?attr/colorOnPrimary" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

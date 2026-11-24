@@ -77,7 +77,19 @@ static bool    step_have_base = false;
 static int     pending_step_detector_events = 0;
 static int     pending_step_counter_events = 0;
 static int     step_emit_phase = 0;
+static uint64_t step_rng_state = 0x9E3779B97F4A7C15ULL;
 static const int64_t kStepMaxGapNs = 5LL * 1000000000LL;
+
+static float nextJitterRatioLocked() {
+    uint64_t x = step_rng_state;
+    x ^= x >> 12;
+    x ^= x << 25;
+    x ^= x >> 27;
+    step_rng_state = x ? x : 0xCAFEBABEULL;
+    uint64_t r = step_rng_state * 2685821657736338717ULL;
+    int deltaPct = (int)(r % 13ULL) - 6;
+    return 1.0f + ((float)deltaPct / 100.0f);
+}
 
 static bool is_plausible_userspace_ptr(const void* ptr) {
     uintptr_t value = (uintptr_t)ptr;
@@ -179,8 +191,8 @@ static bool synthesizeStepEventFromCarrierLocked(void* eventOut, int carrierType
     if (delta > kStepMaxGapNs) delta = kStepMaxGapNs;
     step_last_ts_ns = ts;
 
-    // Apply natural human gait cadence jitter (+/- 6%)
-    float jitter = 1.0f + ((float)((rand() % 13) - 6) / 100.0f);
+    // Apply natural human gait cadence jitter (+/- 6%) under step_state_mutex
+    float jitter = nextJitterRatioLocked();
     step_debt += (double)delta * 1e-9 * sps * (double)jitter;
 
     uint64_t due = (uint64_t)std::floor(step_debt);
@@ -448,13 +460,16 @@ JNIEXPORT void JNICALL
 Java_com_nanci_awalocation_dobby_Dobby_nativeSetRouteSimulation(
     JNIEnv* env, jclass clazz, jboolean active, jfloat spm, jint mode) {
     bool isActive = (active != JNI_FALSE);
+    bool wasActive = route_simulation_active.load(std::memory_order_acquire);
     if (isActive) {
         current_spm.store(spm, std::memory_order_release);
         setRouteSimulationActive(true);
         updateSensorSimulatorParams(spm, mode, 0, true);
         isMocking.store(1, std::memory_order_release);
-        step_event_counter = 0;
-        resetStepDebtClock(false);
+        if (!wasActive) {
+            step_event_counter = 0;
+            resetStepDebtClock(false);
+        }
     } else {
         setRouteSimulationActive(false);
         isMocking.store(0, std::memory_order_release);

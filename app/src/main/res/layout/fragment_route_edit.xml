@@ -1,28 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:clipChildren="false"
-    android:clipToPadding="false"
     tools:context=".ui.mock.RouteEditFragment">
 
     <com.amap.api.maps.MapView
         android:id="@+id/mapView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:clickable="true"
-        android:focusable="true" />
+        android:focusable="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- 绘制模式下覆盖地图，手指移动的是光标而不是地图 -->
     <FrameLayout
         android:id="@+id/route_draw_overlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:clickable="true"
         android:focusable="true"
-        android:visibility="gone">
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/route_cursor"
@@ -34,91 +40,156 @@
             android:src="@drawable/ic_route_cursor" />
     </FrameLayout>
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/route_draw_hint"
-        android:layout_width="wrap_content"
+    <!-- 顶部悬浮条：返回按钮 + 图层切换 -->
+    <LinearLayout
+        android:id="@+id/route_edit_top_bar"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|start"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="64dp"
-        android:visibility="gone"
-        app:cardBackgroundColor="@color/awalocation_surface"
-        app:cardCornerRadius="20dp"
-        app:cardElevation="4dp"
-        app:contentPadding="12dp"
-        app:strokeColor="@color/awalocation_outline_variant"
-        app:strokeWidth="1dp">
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:id="@+id/route_draw_hint_text"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btn_back"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="4dp"
+                app:contentPadding="0dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="14dp">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:contentDescription="@string/back"
+                        app:srcCompat="@drawable/baseline_arrow_back_24"
+                        app:tint="?attr/colorOnSurface" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:text="@string/menu_route_mock_edit"
+                        android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="4dp"
+                app:contentPadding="2dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <RadioGroup
+                    android:id="@+id/map_type_group"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_glass_pill"
+                    android:orientation="horizontal"
+                    android:padding="3dp">
+
+                    <RadioButton
+                        android:id="@+id/map_type_normal"
+                        android:layout_width="68dp"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_map_type_selector"
+                        android:button="@null"
+                        android:checked="true"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="@string/normal_view"
+                        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                        android:textColor="@color/map_type_text_color" />
+
+                    <RadioButton
+                        android:id="@+id/map_type_satellite"
+                        android:layout_width="68dp"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_map_type_selector"
+                        android:button="@null"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="@string/satellite_view"
+                        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                        android:textColor="@color/map_type_text_color" />
+                </RadioGroup>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/route_draw_hint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:maxWidth="240dp"
-            android:text="@string/route_draw_hint"
-            android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-            android:textColor="@color/awalocation_text_color" />
-    </com.google.android.material.card.MaterialCardView>
+            android:layout_marginTop="10dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="4dp"
+            app:contentPadding="10dp"
+            app:strokeColor="?attr/colorPrimary"
+            app:strokeWidth="1dp">
 
-    <!-- 顶部右侧：地图图层切换胶囊 -->
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        app:cardBackgroundColor="@color/awalocation_surface"
-        app:cardCornerRadius="20dp"
-        app:cardElevation="3dp"
-        app:contentPadding="2dp"
-        app:strokeColor="@color/awalocation_outline_variant"
-        app:strokeWidth="1dp">
-
-        <RadioGroup
-            android:id="@+id/map_type_group"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:background="@drawable/bg_glass_pill"
-            android:orientation="horizontal"
-            android:padding="3dp">
-
-            <RadioButton
-                android:id="@+id/map_type_normal"
-                android:layout_width="66dp"
-                android:layout_height="match_parent"
-                android:background="@drawable/bg_map_type_selector"
-                android:button="@null"
-                android:checked="true"
-                android:gravity="center"
-                android:text="@string/normal_view"
+            <TextView
+                android:id="@+id/route_draw_hint_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="240dp"
+                android:text="@string/route_draw_hint"
                 android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                android:textColor="@color/map_type_text_color" />
+                android:textColor="?attr/colorOnSurface" />
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 
-            <RadioButton
-                android:id="@+id/map_type_satellite"
-                android:layout_width="66dp"
-                android:layout_height="match_parent"
-                android:background="@drawable/bg_map_type_selector"
-                android:button="@null"
-                android:gravity="center"
-                android:text="@string/satellite_view"
-                android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                android:textColor="@color/map_type_text_color" />
-        </RadioGroup>
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- 自定义地图缩放控件 -->
+    <!-- 右侧缩放 + 定位按钮 -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/map_zoom_controls"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="end|bottom"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="96dp"
-        app:cardBackgroundColor="@color/awalocation_surface"
+        android:layout_marginBottom="14dp"
+        app:cardBackgroundColor="?attr/colorSurface"
         app:cardCornerRadius="18dp"
         app:cardElevation="4dp"
         app:contentPadding="2dp"
-        app:strokeColor="@color/awalocation_outline_variant"
+        app:layout_constraintBottom_toTopOf="@id/route_edit_bottom_dock"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:strokeColor="?attr/colorOutlineVariant"
         app:strokeWidth="1dp">
 
         <LinearLayout
@@ -128,111 +199,127 @@
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/zoom_in"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/zoom_in"
-                android:padding="11dp"
+                android:padding="10dp"
                 android:src="@drawable/ic_map_zoom_in"
-                app:tint="@color/awalocation_primary" />
+                app:tint="?attr/colorPrimary" />
 
             <View
                 android:layout_width="24dp"
                 android:layout_height="0.8dp"
                 android:layout_gravity="center_horizontal"
-                android:background="@color/awalocation_outline_variant" />
+                android:background="?attr/colorOutlineVariant" />
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/zoom_out"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/zoom_out"
-                android:padding="11dp"
+                android:padding="10dp"
                 android:src="@drawable/ic_map_zoom_out"
-                app:tint="@color/awalocation_primary" />
+                app:tint="?attr/colorPrimary" />
+
+            <View
+                android:layout_width="24dp"
+                android:layout_height="0.8dp"
+                android:layout_gravity="center_horizontal"
+                android:background="?attr/colorOutlineVariant" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/fab_my_location"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/follow_location"
+                android:padding="10dp"
+                android:src="@drawable/baseline_my_location_24"
+                app:tint="?attr/colorPrimary" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- 底部悬浮操作按钮组 -->
-    <LinearLayout
-        android:layout_width="wrap_content"
+    <!-- 底部直观路线编辑工具条 -->
+    <FrameLayout
+        android:id="@+id/route_edit_bottom_dock"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="20dp"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab"
-            android:layout_width="wrap_content"
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:contentDescription="@string/quick_actions"
-            app:backgroundTint="@color/awalocation_primary"
-            app:borderWidth="0dp"
-            app:elevation="4dp"
-            app:fabSize="normal"
-            app:srcCompat="@drawable/baseline_keyboard_arrow_up_24"
-            app:tint="@color/awalocation_on_primary" />
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="6dp"
+            app:contentPadding="10dp"
+            app:strokeColor="?attr/colorOutlineVariant"
+            app:strokeWidth="1dp">
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_start"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:contentDescription="@string/route_draw_hint"
-            android:visibility="gone"
-            app:backgroundTint="@color/awalocation_surface"
-            app:borderWidth="0dp"
-            app:elevation="3dp"
-            app:fabSize="mini"
-            app:srcCompat="@drawable/baseline_add_location_24"
-            app:tint="@color/awalocation_primary" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_rollback"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:contentDescription="撤销上一节点"
-            android:visibility="gone"
-            app:backgroundTint="@color/awalocation_surface"
-            app:borderWidth="0dp"
-            app:elevation="3dp"
-            app:fabSize="mini"
-            app:srcCompat="@drawable/baseline_rollback_24"
-            app:tint="@color/awalocation_primary" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/fab_start"
+                    style="@style/Awalocation.Button.Tonal"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1.25"
+                    android:minWidth="0dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:singleLine="true"
+                    android:text="开始绘制"
+                    android:textSize="13sp"
+                    app:icon="@drawable/baseline_add_location_24"
+                    app:iconPadding="4dp"
+                    app:iconSize="16dp" />
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_complete"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:contentDescription="完成路线"
-            android:visibility="gone"
-            app:backgroundTint="@color/awalocation_surface"
-            app:borderWidth="0dp"
-            app:elevation="3dp"
-            app:fabSize="mini"
-            app:srcCompat="@drawable/baseline_complete_24"
-            app:tint="@color/awalocation_primary" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/fab_rollback"
+                    style="@style/Awalocation.Button.Tonal"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="0.85"
+                    android:minWidth="0dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:singleLine="true"
+                    android:text="撤销"
+                    android:textSize="13sp"
+                    app:icon="@drawable/baseline_rollback_24"
+                    app:iconPadding="4dp"
+                    app:iconSize="16dp" />
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_my_location"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:contentDescription="@string/follow_location"
-            android:visibility="gone"
-            app:backgroundTint="@color/awalocation_surface"
-            app:borderWidth="0dp"
-            app:elevation="3dp"
-            app:fabSize="mini"
-            app:srcCompat="@drawable/baseline_my_location_24"
-            app:tint="@color/awalocation_primary" />
-    </LinearLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/fab_complete"
+                    style="@style/Awalocation.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="0.9"
+                    android:minWidth="0dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:singleLine="true"
+                    android:text="完成"
+                    android:textSize="13sp"
+                    app:icon="@drawable/baseline_complete_24"
+                    app:iconPadding="4dp"
+                    app:iconSize="16dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </FrameLayout>
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

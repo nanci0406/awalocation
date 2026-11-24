@@ -6,11 +6,11 @@
     android:layout_height="wrap_content"
     android:layout_marginBottom="10dp"
     android:foreground="?attr/selectableItemBackground"
-    app:cardBackgroundColor="@color/awalocation_surface"
-    app:cardCornerRadius="16dp"
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardCornerRadius="18dp"
     app:cardElevation="0dp"
-    app:contentPadding="14dp"
-    app:strokeColor="@color/awalocation_outline_variant"
+    app:contentPadding="15dp"
+    app:strokeColor="?attr/colorOutlineVariant"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -20,18 +20,19 @@
         android:orientation="horizontal">
 
         <ImageView
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="@drawable/bg_header_mark"
             android:contentDescription="@null"
-            android:padding="11dp"
+            android:padding="10dp"
             app:srcCompat="@drawable/baseline_location_pin_24"
-            app:tint="@color/awalocation_primary" />
+            app:tint="?attr/colorPrimary" />
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="14dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="6dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -42,8 +43,9 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="@string/name"
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                android:textColor="@color/awalocation_text_color"
+                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="15sp"
                 android:textStyle="bold"
                 app:emojiCompatEnabled="true" />
 
@@ -51,39 +53,39 @@
                 android:id="@+id/history_location_address"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_marginTop="4dp"
                 android:ellipsize="end"
+                android:lineSpacingExtra="2dp"
                 android:maxLines="1"
                 android:text="@string/none_none"
                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                android:textColor="@color/awalocation_on_surface_variant" />
+                android:textColor="?attr/colorOnSurfaceVariant" />
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/history_location_latlon"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="8dp"
                 android:background="@drawable/bg_badge_surface_variant"
                 android:ellipsize="end"
                 android:fontFamily="monospace"
                 android:maxLines="1"
                 android:paddingStart="8dp"
-                android:paddingTop="3dp"
+                android:paddingTop="4dp"
                 android:paddingEnd="8dp"
-                android:paddingBottom="3dp"
+                android:paddingBottom="4dp"
                 android:text="@string/default_latlon"
                 android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-                android:textColor="@color/awalocation_on_surface_variant"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 app:emojiCompatEnabled="true" />
         </LinearLayout>
 
         <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:layout_marginStart="8dp"
             android:contentDescription="@null"
-            app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-            android:rotation="270"
-            app:tint="@color/awalocation_outline" />
+            app:srcCompat="@drawable/ic_chevron_right_24"
+            app:tint="?attr/colorOutline" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

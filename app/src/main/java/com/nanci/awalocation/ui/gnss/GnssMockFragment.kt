@@ -1,31 +1,40 @@
 package com.nanci.awalocation.ui.gnss
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.location.GnssStatus
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
-import com.nanci.awalocation.databinding.FragmentGnssMockBinding
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
-import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
-import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.color.MaterialColors
 import com.tencent.bugly.crashreport.CrashReport
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.nanci.awalocation.R
+import com.nanci.awalocation.android.ui.animateChildrenEntrance
+import com.nanci.awalocation.android.ui.animateScalePop
+import com.nanci.awalocation.android.ui.startLivePulse
+import com.nanci.awalocation.android.ui.stopLivePulse
 import com.nanci.awalocation.android.widget.SatelliteData
 import com.nanci.awalocation.android.window.OverlayUtils
+import com.nanci.awalocation.databinding.FragmentGnssMockBinding
 import com.nanci.awalocation.ext.enableAGPS
 import com.nanci.awalocation.ext.enableGetFromLocation
 import com.nanci.awalocation.ext.enableNMEA
@@ -34,25 +43,20 @@ import com.nanci.awalocation.service.MockServiceHelper
 
 class GnssMockFragment : Fragment() {
     private var _binding: FragmentGnssMockBinding? = null
-
-    // This property is only valid between onCreateView and
-    // onDestroyView.
     private val binding get() = _binding!!
     private lateinit var locationManager: LocationManager
     private var gnssStatusCallback: GnssStatus.Callback? = null
     private var keepaliveLocationListener: LocationListener? = null
+    private var lastRenderedRunning: Boolean? = null
 
     private val requestMultiplePermissionsLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        // 检查所有请求的权限是否都被授予
         val allGranted = permissions.entries.all { it.value }
-
         if (allGranted) {
             Toast.makeText(requireContext(), "所有权限都已授予", Toast.LENGTH_SHORT).show()
             setupGnssStatusCallback()
         } else {
-            // 显示哪些权限被拒绝
             val deniedPermissions = permissions.filter { !it.value }.keys.joinToString()
             Toast.makeText(requireContext(), "以下权限被拒绝: $deniedPermissions", Toast.LENGTH_SHORT).show()
         }
@@ -67,7 +71,20 @@ class GnssMockFragment : Fragment() {
         _binding = FragmentGnssMockBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
+        val baseTop = resources.getDimensionPixelSize(R.dimen.page_top_padding)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.gnssContentRoot) { view, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.updatePadding(top = bars.top + baseTop)
+            insets
+        }
+
         locationManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        binding.chipCompassFollow.setOnCheckedChangeListener { _, isChecked ->
+            binding.satelliteRadaView.setUseDeviceOrientation(isChecked)
+        }
 
         val permissionsToRequest = arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -110,15 +127,11 @@ class GnssMockFragment : Fragment() {
 
         if (!::locationManager.isInitialized) {
             showToast("定位服务获取失败")
-            // 直接退出返回根布局，接下来的操作将不会执行！
             return root
         }
-        if (MockServiceHelper.isGnssMockStart(locationManager)) {
-            binding.switchGnssMock.text = "停止模拟"
-            ContextCompat.getDrawable(requireContext(), R.drawable.rounded_play_disabled_24)?.let {
-                binding.switchGnssMock.icon = it
-            }
-        }
+
+        renderGnssStatus(MockServiceHelper.isGnssMockStart(locationManager))
+
         binding.switchGnssMock.setOnClickListener {
             if (MockServiceHelper.isGnssMockStart(locationManager)) {
                 tryCloseService(it as MaterialButton)
@@ -127,7 +140,48 @@ class GnssMockFragment : Fragment() {
             }
         }
 
+        if (savedInstanceState == null) {
+            binding.gnssContentRoot.animateChildrenEntrance(maxCount = 5, staggerMs = 35L)
+        }
+
         return root
+    }
+
+    private fun renderGnssStatus(running: Boolean) {
+        if (_binding == null) return
+        val stateChanged = lastRenderedRunning != null && lastRenderedRunning != running
+        lastRenderedRunning = running
+        val ctx = requireContext()
+        if (running) {
+            binding.gnssStatusPill.setBackgroundResource(R.drawable.bg_status_pill_running)
+            binding.gnssStatusDot.backgroundTintList = ColorStateList.valueOf(
+                ContextCompat.getColor(ctx, R.color.awalocation_success)
+            )
+            binding.gnssStatusDot.startLivePulse()
+            binding.gnssStatusText.text = getString(R.string.status_running)
+            binding.gnssStatusText.setTextColor(ContextCompat.getColor(ctx, R.color.awalocation_on_success_container))
+            binding.switchGnssMock.text = getString(R.string.stop_mock)
+            ContextCompat.getDrawable(ctx, R.drawable.rounded_play_disabled_24)?.let {
+                binding.switchGnssMock.icon = it
+            }
+        } else {
+            binding.gnssStatusPill.setBackgroundResource(R.drawable.bg_status_pill_idle)
+            binding.gnssStatusDot.backgroundTintList = ColorStateList.valueOf(
+                MaterialColors.getColor(binding.gnssStatusDot, com.google.android.material.R.attr.colorOutline)
+            )
+            binding.gnssStatusDot.stopLivePulse()
+            binding.gnssStatusText.text = getString(R.string.status_idle)
+            binding.gnssStatusText.setTextColor(
+                MaterialColors.getColor(binding.gnssStatusText, com.google.android.material.R.attr.colorOnSurfaceVariant)
+            )
+            binding.switchGnssMock.text = getString(R.string.start_mock)
+            ContextCompat.getDrawable(ctx, R.drawable.rounded_play_arrow_24)?.let {
+                binding.switchGnssMock.icon = it
+            }
+        }
+        if (stateChanged) {
+            binding.gnssStatusPill.animateScalePop(peakScale = 1.08f, durationMs = 220L)
+        }
     }
 
     private fun tryOpenService(button: MaterialButton) {
@@ -144,9 +198,13 @@ class GnssMockFragment : Fragment() {
         lifecycleScope.launch {
             button.isClickable = false
             try {
-                MockServiceHelper.putConfig(locationManager, requireContext())
-                if (MockServiceHelper.startGnssMock(locationManager)) {
-                    updateMockButtonState(button, "停止模拟", R.drawable.rounded_play_disabled_24)
+                val ctx = requireContext().applicationContext
+                val started = withContext(Dispatchers.IO) {
+                    MockServiceHelper.putConfig(locationManager, ctx)
+                    MockServiceHelper.startGnssMock(locationManager)
+                }
+                if (started) {
+                    renderGnssStatus(true)
                 } else {
                     showToast("模拟GNSS服务启动失败")
                     return@launch
@@ -155,8 +213,6 @@ class GnssMockFragment : Fragment() {
                 button.isClickable = true
             }
         }
-
-
     }
 
     private fun tryCloseService(button: MaterialButton) {
@@ -168,19 +224,21 @@ class GnssMockFragment : Fragment() {
         lifecycleScope.launch {
             button.isClickable = false
             try {
-                withContext(Dispatchers.IO) {
+                val stopped = withContext(Dispatchers.IO) {
                     if (!MockServiceHelper.isGnssMockStart(locationManager)) {
                         showToast("模拟服务未启动")
                         return@withContext false
                     }
 
                     if (MockServiceHelper.stopGnssMock(locationManager)) {
-                        updateMockButtonState(button, "开始模拟", R.drawable.rounded_play_arrow_24)
                         return@withContext true
                     } else {
                         showToast("模拟GNSS服务停止失败")
                         return@withContext false
                     }
+                }
+                if (stopped) {
+                    renderGnssStatus(false)
                 }
             } finally {
                 button.isClickable = true
@@ -192,22 +250,13 @@ class GnssMockFragment : Fragment() {
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
     }
 
-    private fun updateMockButtonState(button: MaterialButton, text: String, iconRes: Int) =
-        lifecycleScope.launch(Dispatchers.Main) {
-            button.text = text
-            ContextCompat.getDrawable(requireContext(), iconRes)?.let {
-                button.icon = it
-            }
-        }
-
     private fun setupGnssStatusCallback() {
-        gnssStatusCallback = object: GnssStatus.Callback() {
+        gnssStatusCallback = object : GnssStatus.Callback() {
             @SuppressLint("SetTextI18n")
             override fun onSatelliteStatusChanged(status: GnssStatus) {
                 if (_binding == null) return
 
                 val satelliteCount = status.satelliteCount
-
                 var inViewSatelliteCount = 0
                 var inUseSatelliteCount = 0
                 val signalStrength = arrayListOf<Float>()
@@ -225,15 +274,18 @@ class GnssMockFragment : Fragment() {
                     val azimuth = status.getAzimuthDegrees(i)
                     val usedInFix = status.usedInFix(i)
 
-                    satellites.add(SatelliteData(
-                        prn = svid,
-                        snr = carrierToNoise,
-                        elevation = elevation,
-                        azimuth = azimuth,
-                        hasAlmanac = status.hasAlmanacData(i),
-                        hasEphemeris = status.hasEphemerisData(i),
-                        usedInFix = usedInFix
-                    ))
+                    satellites.add(
+                        SatelliteData(
+                            prn = svid,
+                            snr = carrierToNoise,
+                            elevation = elevation,
+                            azimuth = azimuth,
+                            hasAlmanac = status.hasAlmanacData(i),
+                            hasEphemeris = status.hasEphemerisData(i),
+                            usedInFix = usedInFix,
+                            constellation = constellation
+                        )
+                    )
 
                     inViewSatelliteCount += 1
                     if (usedInFix) {
@@ -248,8 +300,9 @@ class GnssMockFragment : Fragment() {
                     }
                 }
 
-                val avgSignalStrength = if (signalStrength.isNotEmpty()) signalStrength.average().toFloat() else 0f
-                binding.signalStrengthRightItem.text = "%.1f dB-Hz".format(avgSignalStrength)
+                val avgSignalStrength =
+                    if (signalStrength.isNotEmpty()) signalStrength.average().toFloat() else 0f
+                binding.signalStrengthRightItem.text = "%.1f".format(avgSignalStrength)
                 binding.inViewRightItem.text = "$inViewSatelliteCount"
                 binding.inUseRightItem.text = "$inUseSatelliteCount"
 
@@ -262,7 +315,6 @@ class GnssMockFragment : Fragment() {
         }
 
         try {
-            // Keep GPS provider alive so framework continues to update satellite status
             if (keepaliveLocationListener == null) {
                 keepaliveLocationListener = LocationListener { /* keepalive */ }
                 locationManager.requestLocationUpdates(
@@ -273,12 +325,9 @@ class GnssMockFragment : Fragment() {
                 )
             }
 
-            // Register the callback with the LocationManager
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // For Android 11 and above
                 locationManager.registerGnssStatusCallback(requireContext().mainExecutor, gnssStatusCallback!!)
             } else {
-                // For Android versions before 11
                 @Suppress("DEPRECATION")
                 locationManager.registerGnssStatusCallback(gnssStatusCallback!!, null)
             }
@@ -287,27 +336,21 @@ class GnssMockFragment : Fragment() {
         }
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-    }
-
     override fun onResume() {
         super.onResume()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-    }
-
-    override fun onPause() {
-        super.onPause()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
+        if (::locationManager.isInitialized) {
+            lifecycleScope.launch {
+                val running = withContext(Dispatchers.IO) {
+                    MockServiceHelper.isGnssMockStart(locationManager)
+                }
+                renderGnssStatus(running)
+            }
+        }
     }
 
     override fun onDestroyView() {
+        _binding?.gnssStatusDot?.stopLivePulse()
+        lastRenderedRunning = null
         super.onDestroyView()
         _binding = null
         if (gnssStatusCallback != null) {

@@ -4,15 +4,23 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import de.robv.android.xposed.XposedHelpers
 import com.nanci.awalocation.xposed.utils.FakeLoc
 import com.nanci.awalocation.xposed.utils.Logger
 import com.nanci.awalocation.nmea.NMEA
 import com.nanci.awalocation.nmea.NmeaValue
+import java.util.Collections
+import java.util.WeakHashMap
 import kotlin.math.abs
 import kotlin.random.Random
 
 abstract class BaseLocationHook: BaseDivineService() {
+    companion object {
+        private val injectedLocations: MutableSet<Location> =
+            Collections.synchronizedSet(Collections.newSetFromMap(WeakHashMap()))
+    }
+
     fun injectLocation(originLocation: Location, realLocation: Boolean = true): Location {
         if (realLocation) {
             if (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -30,16 +38,20 @@ abstract class BaseLocationHook: BaseDivineService() {
         if (!FakeLoc.enable)
             return originLocation
 
-        if (originLocation.latitude + originLocation.longitude == FakeLoc.latitude + FakeLoc.longitude) {
-            // Already processed
+        val alreadyInjected = injectedLocations.contains(originLocation) ||
+            (originLocation.extras?.containsKey("latlon") == true &&
+                originLocation.extras?.getDouble("latlon", Double.NaN) == originLocation.latitude + originLocation.longitude)
+        if (alreadyInjected) {
             return originLocation
         }
 
-        if (FakeLoc.disableNetworkLocation && originLocation.provider == LocationManager.NETWORK_PROVIDER) {
-            originLocation.provider = LocationManager.GPS_PROVIDER
+        val provider = if (FakeLoc.disableNetworkLocation && originLocation.provider == LocationManager.NETWORK_PROVIDER) {
+            LocationManager.GPS_PROVIDER
+        } else {
+            originLocation.provider ?: LocationManager.GPS_PROVIDER
         }
 
-        val location = Location(originLocation.provider ?: LocationManager.GPS_PROVIDER)
+        val location = Location(provider)
         location.accuracy = if (FakeLoc.accuracy != 0.0f) FakeLoc.accuracy else originLocation.accuracy
         val jitterLat = FakeLoc.jitterLocation()
         location.latitude = jitterLat.first
@@ -63,7 +75,7 @@ abstract class BaseLocationHook: BaseDivineService() {
             location.altitude = 80.0
         }
 
-        location.time = originLocation.time
+        location.time = if (originLocation.time > 0L) originLocation.time else System.currentTimeMillis()
 
         // final addition of zero is to remove -0 results. while these are technically within the
         // range [0, 360) according to IEEE semantics, this eliminates possible user confusion.
@@ -81,19 +93,18 @@ abstract class BaseLocationHook: BaseDivineService() {
             location.isMock = false
         }
 
-        location.elapsedRealtimeNanos = originLocation.elapsedRealtimeNanos
+        location.elapsedRealtimeNanos = if (originLocation.elapsedRealtimeNanos > 0L) {
+            originLocation.elapsedRealtimeNanos
+        } else {
+            SystemClock.elapsedRealtimeNanos()
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             location.elapsedRealtimeUncertaintyNanos = originLocation.elapsedRealtimeUncertaintyNanos
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             location.verticalAccuracyMeters = originLocation.verticalAccuracyMeters
         }
-        originLocation.extras?.let {
-            location.extras = it
-        }
-        if (location.extras == null) {
-            location.extras = Bundle()
-        }
+        location.extras = originLocation.extras?.let { Bundle(it) } ?: Bundle()
         location.extras?.putDouble("latlon", location.latitude + location.longitude)
         location.extras?.putInt("satellites", Random.nextInt(8, 45))
         location.extras?.putInt("maxCn0", Random.nextInt(30, 50))
@@ -125,6 +136,8 @@ abstract class BaseLocationHook: BaseDivineService() {
         }.onFailure {
             Logger.error("makeComplete failed", it)
         }
+
+        injectedLocations.add(location)
 
         if (FakeLoc.enableDebugLog) {
             Logger.debug("injectLocation success! $location")
@@ -173,7 +186,7 @@ abstract class BaseLocationHook: BaseDivineService() {
                     value.latitude = nmeaCoordinate(FakeLoc.latitude)
                     value.longitude = nmeaCoordinate(FakeLoc.longitude)
 
-                    return value.toNmeaString()
+                    return nmea.toNmeaString()
                 }
                 is NmeaValue.GNS -> {
                     if (value.latitude == null || value.longitude == null) {
@@ -193,7 +206,7 @@ abstract class BaseLocationHook: BaseDivineService() {
                     value.latitude = nmeaCoordinate(FakeLoc.latitude)
                     value.longitude = nmeaCoordinate(FakeLoc.longitude)
 
-                    return value.toNmeaString()
+                    return nmea.toNmeaString()
                 }
                 is NmeaValue.GSA -> {
                     return null
@@ -219,7 +232,7 @@ abstract class BaseLocationHook: BaseDivineService() {
                     value.latitude = nmeaCoordinate(FakeLoc.latitude)
                     value.longitude = nmeaCoordinate(FakeLoc.longitude)
 
-                    return value.toNmeaString()
+                    return nmea.toNmeaString()
                 }
                 is NmeaValue.VTG -> {
                     return null

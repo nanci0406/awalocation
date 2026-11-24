@@ -19,7 +19,7 @@ object OverlayUtils {
                 } else {
                     appOpsMgr.checkOpNoThrow("android:system_alert_window", Process.myUid(), context.packageName)
                 }
-                return mode == AppOpsManager.MODE_ALLOWED || mode == AppOpsManager.MODE_IGNORED
+                return mode == AppOpsManager.MODE_ALLOWED
             } else {
                 return Settings.canDrawOverlays(context)
             }

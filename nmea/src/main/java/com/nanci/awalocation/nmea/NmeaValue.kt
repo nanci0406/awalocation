@@ -1,5 +1,9 @@
 package com.nanci.awalocation.nmea
 
+import java.util.Locale
+
+private fun fmt(pattern: String, value: Any): String = String.format(Locale.US, pattern, value)
+
 sealed class NmeaValue (
     val statementId: String,
 ) {
@@ -23,7 +27,7 @@ sealed class NmeaValue (
 //        <6>经度半球E（东经）或W（西经）
 //        <7>高度偏移量
 //        <8>坐标系代码 W84
-        override fun toNmeaString() = "$statementId,${localCoordinateSystemCode ?: ""},${coordinateSystemSubCode ?: ""},${latitudeOffset?.let { "%011.6f".format(it) } ?: ""},${latitudeHemisphere ?: ""},${longitudeOffset?.let { "%012.6f".format(it) } ?: ""},${longitudeHemisphere ?: ""},${heightOffset?.let { "%.3f".format(it) } ?: ""},${coordinateSystemCode ?: ""}"
+        override fun toNmeaString() = "$statementId,${localCoordinateSystemCode ?: ""},${coordinateSystemSubCode ?: ""},${latitudeOffset?.let { fmt("%011.6f", it) } ?: ""},${latitudeHemisphere ?: ""},${longitudeOffset?.let { fmt("%012.6f", it) } ?: ""},${longitudeHemisphere ?: ""},${heightOffset?.let { fmt("%.3f", it) } ?: ""},${coordinateSystemCode ?: ""}"
     }
 
     data class GGA(
@@ -60,7 +64,7 @@ sealed class NmeaValue (
 //        13) Age of differential GPS data, time in seconds since last SC104 type 1 or 9 update, null field when DGPS is not used 注释④
 //        14) Differential reference station ID, 0000-1023 注释⑤
 //        15) Checksum
-        override fun toNmeaString() = "$statementId,$utc,${latitude?.let { "%011.6f".format(it) } ?: ""},$latitudeHemisphere,${longitude?.let { "%011.6f".format(it) } ?: ""},$longitudeHemisphere,$fixQuality,${satellites?.let { "%02d".format(it) } ?: ""},${hdop?.let { "%.1f".format(it) } ?: ""},${antennaAltitude?.let { "%.1f".format(it) } ?: ""},$antennaAltitudeUnit,${geoidalSeparation?.let { "%.1f".format(it) } ?: ""},$geoidalSeparationUnit,${dgpsAge?.let { "%.1f".format(it) } ?: ""},$dgpsStationId"
+        override fun toNmeaString() = "$statementId,$utc,${latitude?.let { fmt("%011.6f", it) } ?: ""},$latitudeHemisphere,${longitude?.let { fmt("%011.6f", it) } ?: ""},$longitudeHemisphere,$fixQuality,${satellites?.let { fmt("%02d", it) } ?: ""},${hdop?.let { fmt("%.1f", it) } ?: ""},${antennaAltitude?.let { fmt("%.1f", it) } ?: ""},$antennaAltitudeUnit,${geoidalSeparation?.let { fmt("%.1f", it) } ?: ""},$geoidalSeparationUnit,${dgpsAge?.let { fmt("%.1f", it) } ?: ""},$dgpsStationId"
     }
 
     data class GNS(
@@ -89,7 +93,7 @@ sealed class NmeaValue (
         val differentialStationId: String?,
         val navStatus: String,
     ): NmeaValue("GNS") {
-        override fun toNmeaString() = "$statementId,$utc,${latitude?.let { "%011.6f".format(it) } ?: ""},$latitudeHemisphere,${longitude?.let { "%011.6f".format(it) } ?: ""},$longitudeHemisphere,$mode,${satellites?.let { "%02d".format(it) } ?: ""},${hdop?.let { "%.1f".format(it) } ?: ""},${altitude?.let { "%.1f".format(it) } ?: ""},${geoidHeight?.let { "%.1f".format(it) } ?: ""},${ageOfDifferentialData?.let { "%.1f".format(it) } ?: ""},${differentialStationId ?: ""},$navStatus"
+        override fun toNmeaString() = "$statementId,$utc,${latitude?.let { fmt("%011.6f", it) } ?: ""},$latitudeHemisphere,${longitude?.let { fmt("%011.6f", it) } ?: ""},$longitudeHemisphere,$mode,${satellites?.let { fmt("%02d", it) } ?: ""},${hdop?.let { fmt("%.1f", it) } ?: ""},${altitude?.let { fmt("%.1f", it) } ?: ""},${geoidHeight?.let { fmt("%.1f", it) } ?: ""},${ageOfDifferentialData?.let { fmt("%.1f", it) } ?: ""},${differentialStationId ?: ""},$navStatus"
     }
 
     data class GSA(
@@ -116,7 +120,7 @@ sealed class NmeaValue (
             require(prn.size == 12) { "prn size should be 12" }
         }
 
-        override fun toNmeaString(): String = "$statementId,$mode,$fixStatus,${prn.joinToString(separator = ",") { it?.let { "%02d".format(it) } ?: "" }},${pdop ?: ""},${hdop ?: ""},${vdop ?: ""},${systemId ?: ""}"
+        override fun toNmeaString(): String = "$statementId,$mode,$fixStatus,${prn.joinToString(separator = ",") { it?.let { fmt("%02d", it) } ?: "" }},${pdop ?: ""},${hdop ?: ""},${vdop ?: ""},${systemId ?: ""}"
     }
 
     data class GSV(
@@ -134,10 +138,12 @@ sealed class NmeaValue (
         )
 
         override fun toNmeaString(): String {
-            val satellites = satellites.joinToString(separator = ",") { satellite ->
-                "${"%02d".format(satellite.prn)},${satellite.elevation.let { "%02d".format(it) }},${satellite.azimuth.let { "%03d".format(it) }},${satellite.snr ?: ""}"
+            val satellitesStr = satellites.joinToString(separator = ",") { satellite ->
+                "${fmt("%02d", satellite.prn)},${fmt("%02d", satellite.elevation)},${fmt("%03d", satellite.azimuth)},${satellite.snr ?: ""}"
             }
-            return "$statementId,$totalMessages,$messageNumber,${totalSatellitesInView.let { "%02d".format(it) }},$satellites,${infoId ?: ""}"
+            val base = "$statementId,$totalMessages,$messageNumber,${fmt("%02d", totalSatellitesInView)}"
+            val withSats = if (satellitesStr.isNotEmpty()) "$base,$satellitesStr" else base
+            return if (infoId != null) "$withSats,$infoId" else withSats
         }
     }
 
@@ -171,7 +177,7 @@ sealed class NmeaValue (
 //        字段11：磁偏角方向，E=东W=西
 //        字段12：Mode指示定位系统模式，A=自主定位，R=差分，F=估算，N=数据无效
 //        字段13：校验值
-        override fun toNmeaString() = "$statementId,$utc,$status,${latitude?.let { "%011.6f".format(it) } ?: ""},$latitudeHemisphere,${longitude?.let { "%011.6f".format(it) } ?: ""},$longitudeHemisphere,${speedKnots?.let { "%.1f".format(it) } ?: ""},${trackAngle?.let { "%.1f".format(it) } ?: ""},${date ?: ""},${magneticVariation?.let { "%.1f".format(it) } ?: ""},$magneticVariationDirection,$mode,$navStatus"
+        override fun toNmeaString() = "$statementId,$utc,$status,${latitude?.let { fmt("%011.6f", it) } ?: ""},$latitudeHemisphere,${longitude?.let { fmt("%011.6f", it) } ?: ""},$longitudeHemisphere,${speedKnots?.let { fmt("%.1f", it) } ?: ""},${trackAngle?.let { fmt("%.1f", it) } ?: ""},${date ?: ""},${magneticVariation?.let { fmt("%.1f", it) } ?: ""},$magneticVariationDirection,$mode,$navStatus"
     }
 
     data class VTG(
@@ -185,7 +191,7 @@ sealed class NmeaValue (
         val magneticTrackMode: String,
         val mode: String
     ): NmeaValue("VTG") {
-        override fun toNmeaString() = "$statementId,${trueTrack?.let { "%.1f".format(it) } ?: ""},$trueTrackMode,${magneticTrack?.let { "%.1f".format(it) } ?: ""},$magneticTrackMode,${groundSpeedKnots?.let { "%.1f".format(it) } ?: ""},$groundSpeedUnit,${groundSpeedKph?.let { "%.1f".format(it) } ?: ""},$groundSpeedKphUnit,$mode"
+        override fun toNmeaString() = "$statementId,${trueTrack?.let { fmt("%.1f", it) } ?: ""},$trueTrackMode,${magneticTrack?.let { fmt("%.1f", it) } ?: ""},$magneticTrackMode,${groundSpeedKnots?.let { fmt("%.1f", it) } ?: ""},$groundSpeedUnit,${groundSpeedKph?.let { fmt("%.1f", it) } ?: ""},$groundSpeedKphUnit,$mode"
     }
 
     abstract fun toNmeaString(): String

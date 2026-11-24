@@ -1,24 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent" android:layout_height="match_parent"
-    android:background="@color/awalocation_background" android:gravity="center"
-    android:orientation="vertical" android:padding="32dp">
-    <ImageView android:layout_width="80dp" android:layout_height="80dp"
-        android:background="@drawable/bg_header_mark" android:contentDescription="@null"
-        android:padding="20dp" app:srcCompat="@drawable/baseline_lock_24"
-        app:tint="@color/awalocation_primary" />
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:layout_marginTop="24dp" android:text="需要必要权限"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="32dp">
+
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:background="@drawable/bg_header_mark"
+        android:contentDescription="@null"
+        android:padding="20dp"
+        app:srcCompat="@drawable/baseline_lock_24"
+        app:tint="?attr/colorPrimary" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="@string/permission_required_title"
         android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
-        android:textColor="@color/awalocation_text_color" android:textStyle="bold" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="12dp" android:gravity="center"
-        android:text="@string/request_permission" android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-        android:textColor="@color/awalocation_on_surface_variant" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="8dp" android:gravity="center"
-        android:text="请在系统设置中授予权限后重新打开 Awalocation"
+        android:textColor="?attr/colorOnSurface"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:text="@string/request_permission"
+        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="@string/permission_required_hint"
         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-        android:textColor="@color/awalocation_hint_color" />
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_retry_permission"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:minHeight="48dp"
+        android:text="@string/permission_retry"
+        app:cornerRadius="16dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_open_settings"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:minHeight="48dp"
+        android:text="@string/permission_open_settings"
+        app:cornerRadius="16dp" />
 </LinearLayout>

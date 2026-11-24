@@ -94,16 +94,17 @@ class HistoricalLocationAdapter(
      */
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.locationName.text = dataSet[position].name
-        val lat = BigDecimal(dataSet[position].lat).toPlainString().take(8)
-        val lon = BigDecimal(dataSet[position].lon).toPlainString().take(8)
-        holder.locationLatLon.text = "$lat,$lon"
-        holder.locationAddress.text = dataSet[position].address
+        val item = dataSet[position]
+        holder.locationName.text = item.name
+        val lat = BigDecimal(item.lat).toPlainString().take(8)
+        val lon = BigDecimal(item.lon).toPlainString().take(8)
+        holder.locationLatLon.text = "$lat, $lon"
+        holder.locationAddress.text = item.address
         holder.root.setOnClickListener {
-            onItemClicked(dataSet[position], false)
+            onItemClicked(item, false)
         }
         holder.root.setOnLongClickListener {
-            onItemClicked(dataSet[position], true)
+            onItemClicked(item, true)
             true
         }
     }

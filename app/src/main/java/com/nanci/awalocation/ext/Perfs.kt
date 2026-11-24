@@ -3,6 +3,7 @@ package com.nanci.awalocation.ext
 import android.content.Context
 import androidx.core.content.edit
 import com.alibaba.fastjson2.JSON
+import com.alibaba.fastjson2.JSONObject
 import com.amap.api.maps.AMap
 import com.nanci.awalocation.service.MockServiceHelper
 import com.nanci.awalocation.ui.mock.HistoricalLocation
@@ -15,34 +16,52 @@ val Context.sharedPrefs
 var Context.selectLocation: HistoricalLocation?
     get() {
         return sharedPrefs.getString("selectedLocation", null)?.let {
-            HistoricalLocation.fromString(it)
+            runCatching { HistoricalLocation.fromString(it) }.getOrNull()
         }
     }
     set(value) = sharedPrefs.edit(commit = true) {
         putString("selectedLocation", value?.toString())
     }
 
+private fun parseHistoricalRoute(item: JSONObject?): HistoricalRoute? {
+    if (item == null) return null
+    val name = item.getString("name") ?: return null
+    val routeArray = item.getJSONArray("route") ?: return null
+    val points = mutableListOf<Pair<Double, Double>>()
+    for (j in 0 until routeArray.size) {
+        val ptObj = routeArray.getJSONObject(j) ?: continue
+        val lat = ptObj.getDouble("first") ?: ptObj.getDouble("lat") ?: continue
+        val lon = ptObj.getDouble("second") ?: ptObj.getDouble("lon") ?: continue
+        points.add(Pair(lat, lon))
+    }
+    return if (points.isNotEmpty()) HistoricalRoute(name, points) else null
+}
+
 var Context.selectRoute: HistoricalRoute?
     get() {
-        return sharedPrefs.getString("selectedRoute", null)?.let {
-            try {
-                JSON.parseObject(it, HistoricalRoute::class.java)
-            } catch (e: Exception) {
-                sharedPrefs.edit {
-                    putString("selectedRoute", "")
-                }
-                null
+        val json = sharedPrefs.getString("selectedRoute", null)
+        if (json.isNullOrBlank()) return null
+        return try {
+            parseHistoricalRoute(JSON.parseObject(json))
+        } catch (e: Exception) {
+            sharedPrefs.edit {
+                putString("selectedRoute", "")
             }
+            null
         }
     }
     set(value) = sharedPrefs.edit(commit = true) {
-        putString("selectedRoute", JSON.toJSONString(value))
+        if (value == null) {
+            remove("selectedRoute")
+        } else {
+            putString("selectedRoute", JSON.toJSONString(value))
+        }
     }
 
 val Context.historicalLocations: List<HistoricalLocation>
     get() {
-        return sharedPrefs.getStringSet("locations", emptySet())?.map {
-            HistoricalLocation.fromString(it)
+        return sharedPrefs.getStringSet("locations", emptySet())?.mapNotNull {
+            runCatching { HistoricalLocation.fromString(it) }.getOrNull()
         } ?: emptyList()
     }
 
@@ -81,27 +100,7 @@ fun Context.getHistoricalRoutesList(): MutableList<HistoricalRoute> {
         val array = JSON.parseArray(json)
         val list = mutableListOf<HistoricalRoute>()
         for (i in 0 until array.size) {
-            val item = array.getJSONObject(i) ?: continue
-            val name = item.getString("name") ?: continue
-            val routeArray = item.getJSONArray("route") ?: continue
-            val points = mutableListOf<Pair<Double, Double>>()
-            for (j in 0 until routeArray.size) {
-                val ptObj = routeArray.getJSONObject(j) ?: continue
-                val lat = ptObj.getDouble("first") ?: ptObj.getDouble("lat") ?: 0.0
-                val lon = ptObj.getDouble("second") ?: ptObj.getDouble("lon") ?: 0.0
-                points.add(Pair(lat, lon))
-            }
-            if (points.isNotEmpty()) {
-                list.add(HistoricalRoute(name, points))
-            }
-        }
-        if (list.isEmpty()) {
-            val defaultRoute = HistoricalRoute(
-                "默认路线",
-                listOf(Pair(39.908822, 116.397465), Pair(39.907951, 116.397500))
-            )
-            list.add(defaultRoute)
-            saveHistoricalRoutesList(list)
+            parseHistoricalRoute(array.getJSONObject(i))?.let { list.add(it) }
         }
         list
     } catch (e: Exception) {
@@ -294,5 +293,21 @@ var Context.routeLoop: Boolean
     set(value) = sharedPrefs.edit {
         putBoolean("routeLoop", value)
     }
+
+var Context.dynamicColorEnabled: Boolean
+    get() = sharedPrefs.getBoolean("dynamicColorEnabled", true)
+    set(value) = sharedPrefs.edit(commit = true) {
+        putBoolean("dynamicColorEnabled", value)
+    }
+
+var Context.themeMode: Int
+    get() = sharedPrefs.getInt(
+        "themeMode",
+        androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+    )
+    set(value) = sharedPrefs.edit(commit = true) {
+        putInt("themeMode", value)
+    }
+
 
 

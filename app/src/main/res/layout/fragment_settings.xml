@@ -4,48 +4,352 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/awalocation_background"
+    android:background="?android:attr/colorBackground"
     android:clipToPadding="false"
     android:fillViewport="true"
     android:scrollbars="none"
     tools:context=".ui.settings.SettingsFragment">
 
     <LinearLayout
+        android:id="@+id/settings_content_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingStart="16dp"
-        android:paddingTop="12dp"
+        android:paddingTop="16dp"
         android:paddingEnd="16dp"
         android:paddingBottom="32dp">
 
-        <!-- Section 1: 定位参数 -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            android:text="@string/menu_setting"
+            android:textAppearance="@style/Awalocation.PageTitle" />
+
+        <!-- Section 0: 外观与主题 -->
+        <TextView
+            android:id="@+id/theme_section_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp"
-            android:text="定位参数"
+            android:text="外观与主题"
             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-            android:textColor="@color/awalocation_primary"
+            android:textColor="?attr/colorPrimary"
             android:textStyle="bold" />
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/theme_section_card"
             style="@style/Awalocation.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/awalocation_surface"
-            app:cardCornerRadius="18dp"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:contentPadding="0dp"
-            app:strokeColor="@color/awalocation_outline_variant"
+            app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="14dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/theme_mode_title"
+                        android:textAppearance="@style/Awalocation.PreferenceTitle" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="@string/theme_mode_desc"
+                        android:textAppearance="@style/Awalocation.PreferenceSummary" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/theme_mode_group"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/theme_mode_system"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:maxLines="1"
+                            android:minWidth="0dp"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:singleLine="true"
+                            android:text="@string/theme_mode_system"
+                            android:textSize="13sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/theme_mode_light"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:maxLines="1"
+                            android:minWidth="0dp"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:singleLine="true"
+                            android:text="@string/theme_mode_light"
+                            android:textSize="13sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/theme_mode_dark"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:maxLines="1"
+                            android:minWidth="0dp"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:singleLine="true"
+                            android:text="@string/theme_mode_dark"
+                            android:textSize="13sp" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+                </LinearLayout>
+
+                <View
+                    android:id="@+id/dynamic_color_divider"
+                    android:layout_width="match_parent"
+                    android:layout_height="0.8dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:background="?attr/colorOutlineVariant" />
+
+                <LinearLayout
+                    android:id="@+id/dynamic_color_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:minHeight="62dp"
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingTop="12dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/dynamic_color_title"
+                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:text="@string/dynamic_color_desc"
+                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/dynamic_color_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="16dp"
+                        app:useMaterialThemeColors="true" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Section 1: 定位参数 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="8dp"
+            android:text="定位参数"
+            android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+            android:textColor="?attr/colorPrimary"
+            android:textStyle="bold" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Awalocation.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:contentPadding="0dp"
+            app:strokeColor="?attr/colorOutlineVariant"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- 移动速度（含内嵌 Slider + 快捷预设） -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="12dp">
+
+                    <LinearLayout
+                        android:id="@+id/speed_layout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="移动速度"
+                                android:textAppearance="@style/Awalocation.PreferenceTitle" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="摇杆与路线模拟速度（点数值可精确输入）"
+                                android:textAppearance="@style/Awalocation.PreferenceSummary" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/speed_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:background="@drawable/bg_badge_surface_variant"
+                            android:maxLines="1"
+                            android:paddingStart="10dp"
+                            android:paddingTop="5dp"
+                            android:paddingEnd="10dp"
+                            android:paddingBottom="5dp"
+                            android:singleLine="true"
+                            android:text="5.0 km/h"
+                            android:textAppearance="@style/Awalocation.PreferenceValue" />
+                    </LinearLayout>
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/speed_slider"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:stepSize="1.0"
+                        android:value="5.0"
+                        android:valueFrom="1.0"
+                        android:valueTo="100.0" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/preset_walk"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:maxLines="1"
+                            android:minWidth="0dp"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:singleLine="true"
+                            android:text="步行 5"
+                            android:textSize="12.5sp"
+                            app:cornerRadius="12dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/preset_bike"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:maxLines="1"
+                            android:minWidth="0dp"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:singleLine="true"
+                            android:text="骑行 15"
+                            android:textSize="12.5sp"
+                            app:cornerRadius="12dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/preset_drive"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:maxLines="1"
+                            android:minWidth="0dp"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:singleLine="true"
+                            android:text="驾车 50"
+                            android:textSize="12.5sp"
+                            app:cornerRadius="12dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0.8dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/colorOutlineVariant" />
 
                 <!-- 海拔高度 -->
                 <LinearLayout
@@ -54,12 +358,12 @@
                     android:layout_height="wrap_content"
                     android:background="?attr/selectableItemBackground"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -86,6 +390,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
+                        android:maxLines="1"
+                        android:singleLine="true"
                         android:text="80.00米"
                         android:textAppearance="@style/Awalocation.PreferenceValue" />
 
@@ -94,74 +400,15 @@
                         android:layout_height="16dp"
                         android:layout_marginStart="6dp"
                         android:contentDescription="@null"
-                        android:rotation="270"
-                        app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/awalocation_outline" />
+                        app:srcCompat="@drawable/ic_chevron_right_24"
+                        app:tint="?attr/colorOutline" />
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/awalocation_outline_variant" />
-
-                <!-- 移动速度 -->
-                <LinearLayout
-                    android:id="@+id/speed_layout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:minHeight="58dp"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingTop="12dp"
-                    android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="移动速度"
-                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:text="摇杆与路线模拟的移动速度（公里/小时）"
-                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/speed_value"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:text="5.0 公里/小时"
-                        android:textAppearance="@style/Awalocation.PreferenceValue" />
-
-                    <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:layout_marginStart="6dp"
-                        android:contentDescription="@null"
-                        android:rotation="270"
-                        app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/awalocation_outline" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="0.8dp"
-                    android:layout_marginStart="16dp"
-                    android:background="@color/awalocation_outline_variant" />
+                    android:background="?attr/colorOutlineVariant" />
 
                 <!-- 定位精度 -->
                 <LinearLayout
@@ -170,12 +417,12 @@
                     android:layout_height="wrap_content"
                     android:background="?attr/selectableItemBackground"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -202,6 +449,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
+                        android:maxLines="1"
+                        android:singleLine="true"
                         android:text="3.00米"
                         android:textAppearance="@style/Awalocation.PreferenceValue" />
 
@@ -210,16 +459,15 @@
                         android:layout_height="16dp"
                         android:layout_marginStart="6dp"
                         android:contentDescription="@null"
-                        android:rotation="270"
-                        app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/awalocation_outline" />
+                        app:srcCompat="@drawable/ic_chevron_right_24"
+                        app:tint="?attr/colorOutline" />
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/awalocation_outline_variant" />
+                    android:background="?attr/colorOutlineVariant" />
 
                 <!-- 位置上报间隔 -->
                 <LinearLayout
@@ -228,12 +476,12 @@
                     android:layout_height="wrap_content"
                     android:background="?attr/selectableItemBackground"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -260,7 +508,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
-                        android:text="1000ms"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:text="100ms"
                         android:textAppearance="@style/Awalocation.PreferenceValue" />
 
                     <ImageView
@@ -268,16 +518,15 @@
                         android:layout_height="16dp"
                         android:layout_marginStart="6dp"
                         android:contentDescription="@null"
-                        android:rotation="270"
-                        app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/awalocation_outline" />
+                        app:srcCompat="@drawable/ic_chevron_right_24"
+                        app:tint="?attr/colorOutline" />
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/awalocation_outline_variant" />
+                    android:background="?attr/colorOutlineVariant" />
 
                 <!-- 最小卫星数量 -->
                 <LinearLayout
@@ -286,12 +535,12 @@
                     android:layout_height="wrap_content"
                     android:background="?attr/selectableItemBackground"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -318,6 +567,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
+                        android:maxLines="1"
+                        android:singleLine="true"
                         android:text="12颗"
                         android:textAppearance="@style/Awalocation.PreferenceValue" />
 
@@ -326,9 +577,8 @@
                         android:layout_height="16dp"
                         android:layout_marginStart="6dp"
                         android:contentDescription="@null"
-                        android:rotation="270"
-                        app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/awalocation_outline" />
+                        app:srcCompat="@drawable/ic_chevron_right_24"
+                        app:tint="?attr/colorOutline" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -338,22 +588,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="20dp"
             android:layout_marginBottom="8dp"
             android:text="定位行为"
             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-            android:textColor="@color/awalocation_primary"
+            android:textColor="?attr/colorPrimary"
             android:textStyle="bold" />
 
         <com.google.android.material.card.MaterialCardView
             style="@style/Awalocation.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/awalocation_surface"
-            app:cardCornerRadius="18dp"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:contentPadding="0dp"
-            app:strokeColor="@color/awalocation_outline_variant"
+            app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -367,12 +617,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -406,7 +656,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/awalocation_outline_variant" />
+                    android:background="?attr/colorOutlineVariant" />
 
                 <!-- 注册位置监听 -->
                 <LinearLayout
@@ -414,12 +664,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -453,7 +703,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/awalocation_outline_variant" />
+                    android:background="?attr/colorOutlineVariant" />
 
                 <!-- 禁用融合定位 -->
                 <LinearLayout
@@ -461,12 +711,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -500,7 +750,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/awalocation_outline_variant" />
+                    android:background="?attr/colorOutlineVariant" />
 
                 <!-- 网络降级 -->
                 <LinearLayout
@@ -508,12 +758,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -547,7 +797,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/awalocation_outline_variant" />
+                    android:background="?attr/colorOutlineVariant" />
 
                 <!-- 禁用 WLAN 扫描 -->
                 <LinearLayout
@@ -555,12 +805,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -594,7 +844,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/awalocation_outline_variant" />
+                    android:background="?attr/colorOutlineVariant" />
 
                 <!-- 连续广播位置 -->
                 <LinearLayout
@@ -602,12 +852,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -644,22 +894,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="20dp"
             android:layout_marginBottom="8dp"
             android:text="传感器模拟"
             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-            android:textColor="@color/awalocation_primary"
+            android:textColor="?attr/colorPrimary"
             android:textStyle="bold" />
 
         <com.google.android.material.card.MaterialCardView
             style="@style/Awalocation.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/awalocation_surface"
-            app:cardCornerRadius="18dp"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:contentPadding="0dp"
-            app:strokeColor="@color/awalocation_outline_variant"
+            app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -673,12 +923,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -712,58 +962,96 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/awalocation_outline_variant" />
+                    android:background="?attr/colorOutlineVariant" />
 
-                <!-- 模拟步频 -->
+                <!-- 模拟步频（Slider + 自动按钮） -->
                 <LinearLayout
-                    android:id="@+id/step_cadence_layout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:minHeight="58dp"
-                    android:orientation="horizontal"
+                    android:orientation="vertical"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
                     android:paddingBottom="12dp">
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:id="@+id/step_cadence_layout"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:background="?attr/selectableItemBackground"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="模拟步频"
+                                android:textAppearance="@style/Awalocation.PreferenceTitle" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="每分钟步数（拖动滑块或恢复自动计算）"
+                                android:textAppearance="@style/Awalocation.PreferenceSummary" />
+                        </LinearLayout>
 
                         <TextView
-                            android:layout_width="match_parent"
+                            android:id="@+id/step_cadence_value"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="模拟步频"
-                            android:textAppearance="@style/Awalocation.PreferenceTitle" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:text="设定每分钟步数（0 为根据速度自动计算）"
-                            android:textAppearance="@style/Awalocation.PreferenceSummary" />
+                            android:layout_marginStart="12dp"
+                            android:background="@drawable/bg_badge_surface_variant"
+                            android:maxLines="1"
+                            android:paddingStart="10dp"
+                            android:paddingTop="5dp"
+                            android:paddingEnd="10dp"
+                            android:paddingBottom="5dp"
+                            android:singleLine="true"
+                            android:text="自动"
+                            android:textAppearance="@style/Awalocation.PreferenceValue" />
                     </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/step_cadence_value"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:text="自动计算"
-                        android:textAppearance="@style/Awalocation.PreferenceValue" />
+                        android:layout_marginTop="6dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                    <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:layout_marginStart="6dp"
-                        android:contentDescription="@null"
-                        android:rotation="270"
-                        app:srcCompat="@drawable/baseline_keyboard_arrow_down_24"
-                        app:tint="@color/awalocation_outline" />
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/cadence_slider"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:stepSize="5.0"
+                            android:value="120.0"
+                            android:valueFrom="60.0"
+                            android:valueTo="220.0" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/cadence_auto_btn"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:layout_marginStart="8dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:maxLines="1"
+                            android:minWidth="0dp"
+                            android:paddingStart="14dp"
+                            android:paddingEnd="14dp"
+                            android:singleLine="true"
+                            android:text="自动"
+                            android:textSize="12.5sp"
+                            app:cornerRadius="12dp" />
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -773,22 +1061,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="20dp"
             android:layout_marginBottom="8dp"
             android:text="高级选项"
             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-            android:textColor="@color/awalocation_primary"
+            android:textColor="?attr/colorPrimary"
             android:textStyle="bold" />
 
         <com.google.android.material.card.MaterialCardView
             style="@style/Awalocation.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/awalocation_surface"
-            app:cardCornerRadius="18dp"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:contentPadding="0dp"
-            app:strokeColor="@color/awalocation_outline_variant"
+            app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -802,12 +1090,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -841,7 +1129,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0.8dp"
                     android:layout_marginStart="16dp"
-                    android:background="@color/awalocation_outline_variant" />
+                    android:background="?attr/colorOutlineVariant" />
 
                 <!-- 调试模式 -->
                 <LinearLayout
@@ -849,12 +1137,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="58dp"
+                    android:minHeight="64dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="14dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="14dp">
 
                     <LinearLayout
                         android:layout_width="0dp"

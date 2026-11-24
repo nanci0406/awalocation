@@ -61,6 +61,12 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
+        <!-- 模拟保活前台服务（防止 Android 17 / 澎湃 OS 后台冻结中断路线模拟） -->
+        <service
+            android:name=".service.MockKeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
         <!-- 高德地图 API Key（申请后替换） -->
         <meta-data
             android:name="com.amap.api.v2.apikey"

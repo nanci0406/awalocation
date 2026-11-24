@@ -119,4 +119,9 @@
     <string name="theme_mode_system">跟随系统</string>
     <string name="theme_mode_light">浅色</string>
     <string name="theme_mode_dark">深色</string>
+    <string name="mock_keep_alive_channel_name">模拟运行状态</string>
+    <string name="mock_keep_alive_channel_desc">在位置或路线模拟时保持后台运行，防止被系统冻结中断</string>
+    <string name="mock_keep_alive_title">Awalocation 模拟运行中</string>
+    <string name="mock_keep_alive_text_location">位置模拟运行中，点击返回应用</string>
+    <string name="mock_keep_alive_text_route">路线模拟运行中，保持后台不中断</string>
 </resources>

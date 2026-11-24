@@ -13,6 +13,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import com.nanci.awalocation.Awalocation
 import com.nanci.awalocation.android.coro.CoroutineController
 import com.nanci.awalocation.android.coro.CoroutineRouteMock
 import com.nanci.awalocation.android.widget.RockerView
@@ -22,6 +23,7 @@ import com.nanci.awalocation.ext.dynamicColorEnabled
 import com.nanci.awalocation.ext.reportDuration
 import com.nanci.awalocation.ext.routeLoop
 import com.nanci.awalocation.ext.speed
+import com.nanci.awalocation.service.MockKeepAliveService
 import com.nanci.awalocation.service.MockServiceHelper
 import com.nanci.awalocation.ui.mock.HistoricalLocation
 import com.nanci.awalocation.ui.mock.HistoricalRoute
@@ -193,6 +195,11 @@ class MockServiceViewModel : ViewModel() {
                         rocker.autoStatus = false
                         // 重设阶段，保持任务存活，下一次自动播放可以重新开始
                         routeStage = 0
+                        if (isServiceStart()) {
+                            MockKeepAliveService.start(appContext, isRoute = false)
+                        } else {
+                            MockKeepAliveService.stop(appContext)
+                        }
                         continue@routeLoop
                     }
 
@@ -262,10 +269,19 @@ class MockServiceViewModel : ViewModel() {
 
         rocker.setRockerAutoListener(object : Rocker.Companion.OnAutoListener {
             override fun onAutoPlay(isPlay: Boolean) {
+                val appCtx = runCatching { Awalocation.appContext }.getOrNull()
                 if (isPlay) {
                     routeMockCoroutine.resume()
+                    appCtx?.let { MockKeepAliveService.start(it, isRoute = true) }
                 } else {
                     routeMockCoroutine.pause()
+                    appCtx?.let {
+                        if (isServiceStart()) {
+                            MockKeepAliveService.start(it, isRoute = false)
+                        } else {
+                            MockKeepAliveService.stop(it)
+                        }
+                    }
                 }
             }
 
@@ -298,6 +314,11 @@ class MockServiceViewModel : ViewModel() {
         }
         if (::rocker.isInitialized && rocker.isStart) {
             runCatching { rocker.hide(immediate = true) }
+        }
+        if (!isServiceStart()) {
+            runCatching { Awalocation.appContext }.getOrNull()?.let {
+                MockKeepAliveService.stop(it)
+            }
         }
     }
 }

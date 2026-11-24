@@ -119,4 +119,9 @@
   <string name="theme_mode_system">システム</string>
   <string name="theme_mode_light">ライト</string>
   <string name="theme_mode_dark">ダーク</string>
+  <string name="mock_keep_alive_channel_name">モック実行ステータス</string>
+  <string name="mock_keep_alive_channel_desc">位置・ルートモック実行中にバックグラウンド凍結を防ぎます</string>
+  <string name="mock_keep_alive_title">Awalocation モック実行中</string>
+  <string name="mock_keep_alive_text_location">位置モック実行中（タップしてアプリを開く）</string>
+  <string name="mock_keep_alive_text_route">ルートモック実行中（バックグラウンド維持）</string>
 </resources>

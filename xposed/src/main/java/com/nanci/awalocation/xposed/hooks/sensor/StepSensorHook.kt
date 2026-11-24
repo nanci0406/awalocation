@@ -1,19 +1,27 @@
 package com.nanci.awalocation.xposed.hooks.sensor
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.location.LocationManager
+import android.os.Binder
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Parcel
+import android.os.Process
 import android.os.SystemClock
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
 import com.nanci.awalocation.xposed.BaseDivineService
+import com.nanci.awalocation.xposed.RemoteCommandHandler
+import com.nanci.awalocation.xposed.utils.BinderUtils
 import com.nanci.awalocation.xposed.utils.FakeLoc
 import com.nanci.awalocation.xposed.utils.Logger
 import com.nanci.awalocation.xposed.utils.onceHookMethodBefore
-import com.nanci.awalocation.xposed.utils.hookBefore
 import java.lang.reflect.Constructor
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.thread
@@ -29,8 +37,6 @@ import kotlin.random.Random
  * 安装，配置经 [BaseDivineService] 与 system_server 同步并接收命令转发。
  */
 object StepSensorHook : BaseDivineService() {
-    private const val TAG = "StepSensorHook"
-
     private data class StepListenerKey(val listener: Any, val sensorType: Int)
     private data class StepListenerEntry(val listener: Any, val sensor: Sensor, val handler: Handler?)
 
@@ -58,14 +64,62 @@ object StepSensorHook : BaseDivineService() {
     fun install(classLoader: ClassLoader) {
         thread(isDaemon = true, name = "AwalocationStepInit") {
             while (true) {
-                val ok = runCatching { initDivineService(TAG) }.getOrDefault(false)
+                val ok = runCatching { initStepProxy() }.getOrDefault(false)
                 if (ok) break
-                // 模拟未运行或连接失败，等待后重试以获取配置与命令转发
+                // system_server 尚未就绪或连接失败，等待后重试以获取配置与命令转发
                 val interrupted = runCatching { Thread.sleep(2000) }.isFailure
                 if (interrupted) break
             }
         }
         hook(classLoader)
+    }
+
+    @SuppressLint("PrivateApi")
+    private fun initStepProxy(): Boolean {
+        if (FakeLoc.isSystemServerProcess) return true
+
+        val ctx = BinderUtils.getSystemContext() ?: runCatching {
+            val cActivityThread = Class.forName("android.app.ActivityThread")
+            cActivityThread.getMethod("currentApplication").invoke(null) as? Context
+        }.getOrNull() ?: return false
+
+        val locationManager = ctx.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            ?: return false
+
+        val rely = Bundle()
+        rely.putBinder("proxy", object : Binder() {
+            override fun getInterfaceDescriptor(): String = RemoteCommandHandler.STEP_PROXY_DESCRIPTOR
+
+            override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
+                if (code == 1) {
+                    if (getCallingUid() != Process.SYSTEM_UID) {
+                        return false
+                    }
+                    val bundle = data.readBundle(javaClass.classLoader) ?: return true
+                    if (FakeLoc.enableDebugLog) {
+                        Logger.debug("StepProxyBinder: $bundle")
+                    }
+                    RemoteCommandHandler.handleForwardedInstruction(bundle)
+                    return true
+                }
+                return super.onTransact(code, data, reply, flags)
+            }
+        })
+
+        if (!locationManager.sendExtraCommand("awalocation", RemoteCommandHandler.STEP_PROXY_COMMAND, rely)) {
+            return false
+        }
+
+        FakeLoc.enable = rely.getBoolean("enable", FakeLoc.enable)
+        FakeLoc.speed = rely.getDouble("speed", FakeLoc.speed)
+        FakeLoc.enableMockStep = rely.getBoolean("enable_step_mock", FakeLoc.enableMockStep)
+        FakeLoc.stepCadence = rely.getFloat("step_cadence", FakeLoc.stepCadence).coerceAtLeast(0f)
+        FakeLoc.enableDebugLog = rely.getBoolean("enable_debug_log", FakeLoc.enableDebugLog)
+        if (FakeLoc.enableMockStep) {
+            wakeFeeder()
+        }
+        Logger.info("StepSensorHook proxy registered: enable=${FakeLoc.enableMockStep}, cadence=${FakeLoc.stepCadence}")
+        return true
     }
 
     private fun hook(classLoader: ClassLoader) {
@@ -254,11 +308,13 @@ object StepSensorHook : BaseDivineService() {
                     try {
                         isDeliveringSyntheticEvent.set(true)
                         XposedHelpers.callMethod(listener, "onSensorChanged", event)
+                        if (FakeLoc.enableDebugLog) {
+                            Logger.debug("Fed step event: type=${sensor.type}, value=${event.values[0]}")
+                        }
+                    } catch (t: Throwable) {
+                        Logger.error("Step listener callback error", t)
                     } finally {
                         isDeliveringSyntheticEvent.remove()
-                    }
-                    if (FakeLoc.enableDebugLog) {
-                        Logger.debug("Fed step event: type=${sensor.type}, value=${event.values[0]}")
                     }
                 }
 

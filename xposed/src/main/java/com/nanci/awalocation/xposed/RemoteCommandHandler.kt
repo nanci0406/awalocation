@@ -10,18 +10,24 @@ import com.nanci.awalocation.xposed.hooks.sensor.StepSensorHook
 import com.nanci.awalocation.xposed.utils.FakeLoc
 import com.nanci.awalocation.xposed.utils.BinderUtils
 import com.nanci.awalocation.xposed.utils.Logger
-import java.io.File
 import java.util.Collections
 import kotlin.random.Random
 
 object RemoteCommandHandler {
     private val proxyBinders by lazy { Collections.synchronizedList(arrayListOf<IBinder>()) }
+    private val stepProxyBinders by lazy { Collections.synchronizedList(arrayListOf<IBinder>()) }
     private val needProxyCmd = arrayOf(
         "start", "stop", "set_speed_amp", "set_altitude", "set_speed",
         "update_location", "set_bearing", "move", "put_config",
         "start_gnss_mock", "stop_gnss_mock", "start_wifi_mock", "stop_wifi_mock",
         "start_step_mock", "stop_step_mock", "set_step_cadence"
     )
+    private val stepProxyCmd = setOf(
+        "start", "stop", "set_speed", "put_config",
+        "start_step_mock", "stop_step_mock", "set_step_cadence"
+    )
+    internal const val STEP_PROXY_COMMAND = "register_step_proxy"
+    internal const val STEP_PROXY_DESCRIPTOR = "com.nanci.awalocation.service.StepSensorHookHelper"
     internal val randomKey by lazy { "awalocation_" + Random.nextDouble() }
 
     fun ensureNativeLibraryLoaded(): Boolean {
@@ -75,33 +81,71 @@ object RemoteCommandHandler {
                 rely.putString("key", randomKey)
                 return true
             }
+            return false
             // Go back and see if the instruction has been processed to prevent it from being detected by others
+        } else if (command == STEP_PROXY_COMMAND) {
+            // 仅限 LSPosed 作用域内由本模块加载的 StepSensorHook 注册只读步频订阅，
+            // 不下发 randomKey，也不会向第三方应用暴露任何写权限或 provider 状态。
+            val proxy = rely.getBinder("proxy") ?: return false
+            val descriptor = runCatching { proxy.interfaceDescriptor }.getOrNull()
+            if (descriptor != STEP_PROXY_DESCRIPTOR || !proxy.isBinderAlive) {
+                return false
+            }
+            synchronized(stepProxyBinders) {
+                stepProxyBinders.removeIf { !it.isBinderAlive || it == proxy }
+                stepProxyBinders.add(proxy)
+            }
+            rely.putBoolean("enable", FakeLoc.enable)
+            rely.putDouble("speed", FakeLoc.speed)
+            rely.putBoolean("enable_step_mock", FakeLoc.enableMockStep)
+            rely.putFloat("step_cadence", FakeLoc.stepCadence)
+            rely.putBoolean("enable_debug_log", FakeLoc.enableDebugLog)
+            return true
         } else if (command != randomKey) {
             return false
         }
         val commandId = rely.getString("command_id") ?: return false
 
-        kotlin.runCatching {
-            if (proxyBinders.isNotEmpty() && needProxyCmd.any { it == commandId }) {
-                proxyBinders.removeIf {
-                    if (it.isBinderAlive && it.pingBinder()) {
-                        val data = Parcel.obtain()
-                        data.writeBundle(rely)
-                        it.transact(1, data, null, 0)
-                        data.recycle()
-                        false
-                    } else true
-                }
-            }
-        }.onFailure {
-            Logger.error("Failed to transact with proxyBinder", it)
-        }
+        forwardToBinders(proxyBinders, rely, needProxyCmd.any { it == commandId }, "proxyBinder")
+        forwardToBinders(stepProxyBinders, rely, commandId in stepProxyCmd, "stepProxyBinder")
 
         if (FakeLoc.enableDebugLog) {
             Logger.debug("commandId=$commandId, rely=$rely")
         }
 
         return executeInstruction(commandId, rely)
+    }
+
+    private fun forwardToBinders(
+        binders: MutableList<IBinder>,
+        rely: Bundle,
+        shouldForward: Boolean,
+        label: String
+    ) {
+        if (!shouldForward || binders.isEmpty()) return
+        kotlin.runCatching {
+            synchronized(binders) {
+                binders.removeIf { binder ->
+                    if (binder.isBinderAlive && binder.pingBinder()) {
+                        val data = Parcel.obtain()
+                        try {
+                            data.writeBundle(rely)
+                            binder.transact(1, data, null, IBinder.FLAG_ONEWAY)
+                            false
+                        } catch (e: Throwable) {
+                            Logger.warn("Failed to transact with $label", e)
+                            !binder.isBinderAlive
+                        } finally {
+                            data.recycle()
+                        }
+                    } else {
+                        true
+                    }
+                }
+            }
+        }.onFailure {
+            Logger.error("Failed to transact with $label", it)
+        }
     }
 
     fun handleForwardedInstruction(rely: Bundle): Boolean {
@@ -180,15 +224,11 @@ object RemoteCommandHandler {
                 return true
             }
             "start_step_mock" -> {
-                FakeLoc.stepCadence = rely.getFloat("cadence", FakeLoc.stepCadence)
+                val cadence = rely.getFloat("cadence", FakeLoc.stepCadence)
+                FakeLoc.stepCadence = if (cadence < 0f) 0f else cadence
                 FakeLoc.enableMockStep = true
-                ensureNativeLibraryLoaded()
-                val spm = if (FakeLoc.stepCadence > 0f) FakeLoc.stepCadence else (FakeLoc.speed * 35.0 + 70.0).toFloat().coerceIn(60f, 220f)
-                if (Dobby.isLoaded) {
-                    Dobby.init(spm, mode = 0, scheme = 0, enabled = true)
-                    Dobby.setRouteSimulation(true, spm, mode = 0)
-                    Dobby.setStepSimEnabled(true)
-                }
+                // 步频模拟统一走 Java 层 StepSensorHook，不在 system_server 内加载 Dobby native Hook，
+                // 防止 Android 14+ ARM64 BTI/SensorService 内存冲突导致软重启。
                 StepSensorHook.wakeFeeder()
                 return true
             }
@@ -208,15 +248,6 @@ object RemoteCommandHandler {
             "set_step_cadence" -> {
                 val cadence = rely.getFloat("cadence", 0f)
                 FakeLoc.stepCadence = if (cadence < 0f) 0f else cadence
-                if (FakeLoc.enableMockStep) {
-                    ensureNativeLibraryLoaded()
-                }
-                val spm = if (FakeLoc.stepCadence > 0f) FakeLoc.stepCadence else (FakeLoc.speed * 35.0 + 70.0).toFloat().coerceIn(60f, 220f)
-                if (Dobby.isLoaded && FakeLoc.enableMockStep) {
-                    Dobby.init(spm, mode = 0, scheme = 0, enabled = true)
-                    Dobby.setRouteSimulation(true, spm, mode = 0)
-                    Dobby.setStepSimEnabled(true)
-                }
                 StepSensorHook.wakeFeeder()
                 return true
             }
@@ -254,10 +285,6 @@ object RemoteCommandHandler {
             "set_speed" -> {
                 val speed = rely.getDouble("speed", 0.0)
                 FakeLoc.speed = speed
-                if (FakeLoc.isSystemServerProcess && Dobby.isLoaded && FakeLoc.enableMockStep && FakeLoc.stepCadence <= 0f) {
-                    val spm = (FakeLoc.speed * 35.0 + 70.0).toFloat().coerceIn(60f, 220f)
-                    Dobby.init(spm, mode = 0, scheme = 0, enabled = true)
-                }
                 return true
             }
             "set_bearing" -> {
@@ -360,21 +387,12 @@ object RemoteCommandHandler {
                 FakeLoc.disableGetFromLocation = disableGetFromLocation
                 FakeLoc.enableMockStep = enableMockStep
                 FakeLoc.stepCadence = if (stepCadence < 0f) 0f else stepCadence
-                val spm = if (FakeLoc.stepCadence > 0f) FakeLoc.stepCadence else (FakeLoc.speed * 35.0 + 70.0).toFloat().coerceIn(60f, 220f)
                 if (enableMockStep) {
-                    ensureNativeLibraryLoaded()
-                    if (Dobby.isLoaded) {
-                        Dobby.init(spm, mode = 0, scheme = 0, enabled = true)
-                        Dobby.setRouteSimulation(true, spm, mode = 0)
-                        Dobby.setStepSimEnabled(true)
-                        Dobby.setMocking(FakeLoc.enable)
-                        Dobby.setStatus(FakeLoc.enable)
-                    }
                     StepSensorHook.wakeFeeder()
                 } else {
                     if (Dobby.isLoaded) {
                         Dobby.setStepSimEnabled(false)
-                        Dobby.setRouteSimulation(false, spm, mode = 0)
+                        Dobby.setRouteSimulation(false, FakeLoc.stepCadence, mode = 0)
                     }
                     StepSensorHook.stopFeeder()
                 }
@@ -382,7 +400,6 @@ object RemoteCommandHandler {
                 FakeLoc.enableMockWifi = enableMockWifi
                 if (enableMockGnss && FakeLoc.isSystemServerProcess) {
                     LocationServiceHook.startGnssMockDaemon()
-                    LocationServiceHook.callOnGnssStatusChanged()
                 }
                 return true
             }
@@ -420,44 +437,10 @@ object RemoteCommandHandler {
                 return true
             }
             "load_library" -> {
-                if (!FakeLoc.isSystemServerProcess) return false
-                val path = rely.getString("path") ?: return false
-                val allowedFile = runCatching {
-                    File("/data/local/awalocation-lib/libawalocation.so").canonicalFile
-                }.getOrNull() ?: return false
-                val requestedFile = runCatching { File(path).canonicalFile }.getOrNull()
-                if (requestedFile != allowedFile) {
-                    Logger.warn("Rejected load_library path: $path")
-                    rely.putString("result", "rejected path")
-                    return false
-                }
-
-                if (Dobby.isLoaded) {
-                    resolveSystemSensorHandles()
-                    rely.putString("result", "success")
-                    return true
-                }
-                runCatching {
-                    System.load(allowedFile.path)
-                }.onSuccess {
-                    rely.putString("result", "success")
-                    Dobby.isLoaded = true
-                    resolveSystemSensorHandles()
-                }.onFailure {
-                    rely.putString("result", it.stackTraceToString())
-                }
-
-                if (Dobby.isLoaded) {
-                    Dobby.setStatus(FakeLoc.enable)
-                    Dobby.setMocking(FakeLoc.enable)
-                    if (FakeLoc.enableMockStep) {
-                        val spm = if (FakeLoc.stepCadence > 0f) FakeLoc.stepCadence else (FakeLoc.speed * 35.0 + 70.0).toFloat().coerceIn(60f, 220f)
-                        Dobby.init(spm, mode = 0, scheme = 0, enabled = true)
-                        Dobby.setRouteSimulation(true, spm, mode = 0)
-                        Dobby.setStepSimEnabled(true)
-                    }
-                }
-
+                // 禁用在 system_server 中通过 Dobby inline hook 注入 native 传感器库，
+                // 防止与现代 Android ARM64 BTI / SensorService 冲突触发系统软重启。
+                Logger.info("load_library disabled to keep system_server stable")
+                rely.putString("result", "disabled")
                 return true
             }
             else -> return false

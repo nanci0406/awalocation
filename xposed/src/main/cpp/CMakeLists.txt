@@ -13,3 +13,4 @@ add_library(awalocation SHARED
         sensor_hook.cpp)
 
 target_link_libraries(awalocation android log dobby::dobby)
+target_link_options(awalocation PRIVATE "-Wl,-z,max-page-size=16384")

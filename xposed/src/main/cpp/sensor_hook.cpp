@@ -13,6 +13,7 @@
 #include <mutex>
 #include <chrono>
 #include <cstdlib>
+#include <new>
 #include <unistd.h>
 
 #include "sensor_simulator.h"
@@ -36,7 +37,7 @@ static const char *kHookTag = "NativeSensorHook.awalocation";
 
 #define EVENT_SIZE 0x68
 
-typedef void (*SendObjectsFunc)(long*, void*, long, long);
+typedef ssize_t (*SendObjectsFunc)(void*, const void*, size_t, size_t);
 static SendObjectsFunc original_send_objects = nullptr;
 static bool send_objects_hook_installed = false;
 static std::atomic<bool> route_simulation_active{false};
@@ -240,44 +241,35 @@ static bool synthesizeStepEventFromCarrierLocked(void* eventOut, int carrierType
     return false;
 }
 
-extern "C" void hooked_send_objects(long* param_1, void* param_2, long param_3, long param_4) {
-    if (!route_simulation_active.load(std::memory_order_acquire)) {
-        if (original_send_objects) {
-            original_send_objects(param_1, param_2, param_3, param_4);
-        }
-        return;
+extern "C" ssize_t hooked_send_objects(void* param_1, const void* param_2, size_t param_3, size_t param_4) {
+    if (!original_send_objects) {
+        return -EINVAL;
     }
 
-    if (!param_2) {
-        if (original_send_objects) {
-            original_send_objects(param_1, param_2, param_3, param_4);
-        }
-        return;
+    if (!route_simulation_active.load(std::memory_order_acquire) ||
+        !param_2 ||
+        param_4 != EVENT_SIZE) {
+        return original_send_objects(param_1, param_2, param_3, param_4);
     }
 
-    int count = (int)param_3;
-    if (count <= 0 || count > 1000) {
-        if (original_send_objects) {
-            original_send_objects(param_1, param_2, param_3, param_4);
-        }
-        return;
+    if (param_3 == 0 || param_3 > 1000) {
+        return original_send_objects(param_1, param_2, param_3, param_4);
     }
 
+    size_t count = param_3;
     size_t buffer_size = count * EVENT_SIZE;
     if (buffer_size > 65536) {
-        if (original_send_objects) {
-            original_send_objects(param_1, param_2, param_3, param_4);
-        }
-        return;
+        return original_send_objects(param_1, param_2, param_3, param_4);
     }
 
-    char* heap_buffer = new char[buffer_size];
+    char* heap_buffer = new (std::nothrow) char[buffer_size];
+    if (!heap_buffer) {
+        return original_send_objects(param_1, param_2, param_3, param_4);
+    }
     memcpy(heap_buffer, param_2, buffer_size);
 
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
         void* event = heap_buffer + i * EVENT_SIZE;
-        uintptr_t addr = (uintptr_t)event;
-        if (addr < 0x10000) continue;
 
         int type = *(int*)((char*)event + 0x08);
         int64_t timestamp = *(int64_t*)((char*)event + 0x10);
@@ -321,12 +313,9 @@ extern "C" void hooked_send_objects(long* param_1, void* param_2, long param_3, 
         }
     }
 
-    memcpy(param_2, heap_buffer, buffer_size);
+    ssize_t ret = original_send_objects(param_1, heap_buffer, param_3, param_4);
     delete[] heap_buffer;
-
-    if (original_send_objects) {
-        original_send_objects(param_1, param_2, param_3, param_4);
-    }
+    return ret;
 }
 
 extern "C" void hooked_convert_to_sensor_event(void* param_1, void* param_2) {

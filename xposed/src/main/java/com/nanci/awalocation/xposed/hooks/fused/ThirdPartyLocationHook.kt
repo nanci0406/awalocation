@@ -37,8 +37,8 @@ object ThirdPartyLocationHook: BaseLocationHook() {
 
         cNetworkLocationManager.onceHookMethodBefore("onSendExtraCommand") {
             if (FakeLoc.enableDebugLog) {
-                val cmd = args[0] as String
-                val extras = args[1] as Bundle
+                val cmd = args.getOrNull(0) as? String
+                val extras = args.getOrNull(1) as? Bundle
 
                 Logger.debug("NetworkLocationManager.onSendExtraCommand: $cmd, $extras")
             }
@@ -59,16 +59,17 @@ object ThirdPartyLocationHook: BaseLocationHook() {
         }
         cNetworkLocationManager.onceHookMethodBefore("requestLocationUpdates") {
             if (FakeLoc.enable) {
-                if(this.args[1] is LocationListener) {
+                if (this.args.size > 1 && this.args[1] is LocationListener) {
                     this.args[1] = null // 拒绝高德地图注册私有listener
                 }
-                listenerField.forEach { it.set(thisObject, null) }
-                boolFields.forEach { it.setBoolean(thisObject, false) }
+                val target = thisObject ?: return@onceHookMethodBefore
+                listenerField.forEach { runCatching { it.set(target, null) } }
+                boolFields.forEach { runCatching { it.setBoolean(target, false) } }
             }
         }
 
         cNetworkLocationManager.hookMethodBefore("updateOffLocEnable") {
-            this.result = Unit
+            this.result = null
         }
 
         BlindHookLocation(cNetworkLocationManager, classLoader)

@@ -149,7 +149,6 @@ object MockServiceHelper {
                 return false
             }
         }
-        runCatching { Awalocation.appContext }.getOrNull()?.let { loadAwalocationLibrary(it) }
         val rely = Bundle()
         rely.putString("command_id", "start_step_mock")
         rely.putFloat("cadence", cadence)
@@ -200,13 +199,10 @@ object MockServiceHelper {
             return false
         }
         // 启动模拟前先同步本地配置到 system_server，并按用户设置切换 SELinux 宽容模式；
-        // native 传感器 Hook 仅在开启步频模拟时按需加载。
+        // 步频模拟改由 Java 层 StepSensorHook 完成，避免向 system_server 注入 native Dobby Hook 导致软重启。
         runCatching { Awalocation.appContext }.getOrNull()?.let { appCtx ->
             if (appCtx.needOpenSELinux && ShellUtils.hasRoot()) {
                 ShellUtils.setEnforceMode(false)
-            }
-            if (appCtx.enableStepMock) {
-                loadAwalocationLibrary(appCtx)
             }
             putConfig(locationManager, appCtx)
         }
@@ -220,6 +216,9 @@ object MockServiceHelper {
                 if (started) {
                     FakeLoc.enable = true
                     startLoopBroadcastLocation(locationManager)
+                    runCatching { Awalocation.appContext }.getOrNull()?.let { appCtx ->
+                        MockKeepAliveService.start(appCtx, isRoute = false)
+                    }
                 }
             }
         } else {
@@ -234,6 +233,9 @@ object MockServiceHelper {
         val rely = Bundle()
         rely.putString("command_id", "stop")
         stopLoopBroadcastLocation()
+        runCatching { Awalocation.appContext }.getOrNull()?.let { appCtx ->
+            MockKeepAliveService.stop(appCtx)
+        }
         if (locationManager.sendExtraCommand(PROVIDER_NAME, randomKey, rely)) {
             return (!isMockStart(locationManager)).also { closed ->
                 if (closed) FakeLoc.enable = false
@@ -516,10 +518,11 @@ object MockServiceHelper {
 
             if (sourceSo != null && sourceSo.exists()) {
                 ShellUtils.executeCommand("mkdir -p ${soDir.absolutePath}")
-                ShellUtils.executeCommand("chmod 777 ${soDir.absolutePath}")
+                ShellUtils.executeCommand("chmod 755 ${soDir.absolutePath}")
                 ShellUtils.executeCommand("chcon u:object_r:system_file:s0 ${soDir.absolutePath}")
                 ShellUtils.executeCommand("cp ${sourceSo.absolutePath} ${soFile.absolutePath}")
-                ShellUtils.executeCommand("chmod 777 ${soFile.absolutePath}")
+                // Android 17 Safer Native DCL 要求 System.load() 加载的 .so 必须只读，不能可写。
+                ShellUtils.executeCommand("chmod 444 ${soFile.absolutePath}")
                 ShellUtils.executeCommand("chcon u:object_r:system_file:s0 ${soFile.absolutePath}")
                 Log.i("MockServiceHelper", "Deployed libawalocation.so to ${soFile.absolutePath}")
             }

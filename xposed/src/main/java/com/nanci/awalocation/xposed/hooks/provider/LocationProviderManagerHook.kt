@@ -290,12 +290,12 @@ object LocationProviderManagerHook {
                 }
 
                 cGnssLocationProvider.onceHookMethodBefore("setRefLocation", Int::class.java, CellIdentity::class.java) {
-                    if (!FakeLoc.enable) return@onceHookMethodBefore
+                    if (!FakeLoc.enable || FakeLoc.enableAGPS) return@onceHookMethodBefore
                     if (FakeLoc.enableDebugLog) {
-                        Logger.debug("GnssLocationProvider.setRefLocation: injected!")
+                        Logger.debug("GnssLocationProvider.setRefLocation: blocked")
                     }
 
-                    args[0] = 114514 // disable AGPS
+                    result = null
                 }
             }
         }.onFailure {

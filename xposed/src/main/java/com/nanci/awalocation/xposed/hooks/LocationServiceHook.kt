@@ -32,7 +32,7 @@ import com.nanci.awalocation.xposed.utils.hookAllMethods
 import com.nanci.awalocation.xposed.utils.onceHookAllMethod
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
-import java.util.Collections
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
@@ -182,28 +182,29 @@ data class MockGnssData(
 
 internal object LocationServiceHook: BaseLocationHook() {
     val locationListeners = LinkedBlockingQueue<Pair<String, IInterface>>()
-    val gnssStatusListeners = Collections.synchronizedList(ArrayList<IInterface>())
+    val gnssStatusListeners = CopyOnWriteArrayList<IInterface>()
 
-    @Volatile
-    private var isGnssDaemonRunning = false
+    private val isGnssDaemonRunning = AtomicBoolean(false)
 
     fun startGnssMockDaemon() {
-        if (isGnssDaemonRunning) return
-        isGnssDaemonRunning = true
+        if (!isGnssDaemonRunning.compareAndSet(false, true)) return
         kotlin.concurrent.thread(name = "GnssMockDaemon", isDaemon = true) {
-            while (FakeLoc.enableMockGnss) {
-                try {
-                    Thread.sleep(1000L)
-                    if (FakeLoc.enableMockGnss) {
-                        callOnGnssStatusChanged()
+            try {
+                while (FakeLoc.enableMockGnss) {
+                    try {
+                        Thread.sleep(1000L)
+                        if (FakeLoc.enableMockGnss) {
+                            callOnGnssStatusChanged()
+                        }
+                    } catch (e: InterruptedException) {
+                        break
+                    } catch (e: Throwable) {
+                        Logger.error("GnssMockDaemon error", e)
                     }
-                } catch (e: InterruptedException) {
-                    break
-                } catch (e: Throwable) {
-                    Logger.error("GnssMockDaemon error", e)
                 }
+            } finally {
+                isGnssDaemonRunning.set(false)
             }
-            isGnssDaemonRunning = false
         }
     }
 
@@ -214,12 +215,14 @@ internal object LocationServiceHook: BaseLocationHook() {
         val mDeathRecipient = object: IBinder.DeathRecipient {
             override fun binderDied() {}
             override fun binderDied(who: IBinder) {
-                who.unlinkToDeath(this, 0)
+                runCatching { who.unlinkToDeath(this, 0) }
                 removeGnssStatusListenerByBinder(who)
             }
         }
         runCatching {
             binder.linkToDeath(mDeathRecipient, 0)
+        }.onFailure {
+            Logger.warn("linkToDeath failed for gnss listener", it)
         }
         gnssStatusListeners.add(listener)
     }
@@ -320,31 +323,39 @@ internal object LocationServiceHook: BaseLocationHook() {
         if (!FakeLoc.enableMockGnss) return
         if (gnssStatusListeners.isEmpty()) return
 
-        val minSats = FakeLoc.minSatellites.coerceAtLeast(12)
-        val svCount = Random.nextInt(minSats, MAX_SATELLITES + 1)
-        val selectedSatellites = satelliteList.shuffled().take(svCount)
-        val mockGps = generateMockGnssData(svCount, selectedSatellites)
-        val gnssStatus = createMockGnssStatus(mockGps, selectedSatellites)
+        runCatching {
+            val minSats = FakeLoc.minSatellites.coerceIn(12, MAX_SATELLITES)
+            val svCount = Random.nextInt(minSats, MAX_SATELLITES + 1)
+            val selectedSatellites = satelliteList.shuffled().take(svCount)
+            val mockGps = generateMockGnssData(svCount, selectedSatellites)
+            val gnssStatus = createMockGnssStatus(mockGps, selectedSatellites)
 
-        val deadListeners = mutableListOf<IInterface>()
-        gnssStatusListeners.forEach { listener ->
-            val success = dispatchGnssStatus(listener, gnssStatus, mockGps)
-            if (!success && !listener.asBinder().isBinderAlive) {
-                deadListeners.add(listener)
+            val deadListeners = mutableListOf<IInterface>()
+            for (listener in gnssStatusListeners) {
+                val success = dispatchGnssStatus(listener, gnssStatus, mockGps)
+                if (!success && !listener.asBinder().isBinderAlive) {
+                    deadListeners.add(listener)
+                }
             }
-        }
-        if (deadListeners.isNotEmpty()) {
-            gnssStatusListeners.removeAll(deadListeners)
+            if (deadListeners.isNotEmpty()) {
+                gnssStatusListeners.removeAll(deadListeners.toSet())
+            }
+        }.onFailure {
+            Logger.error("callOnGnssStatusChanged failed", it)
         }
     }
 
     fun callOnGnssStatusChangedForListener(listener: IInterface) {
-        val minSats = FakeLoc.minSatellites.coerceAtLeast(12)
-        val svCount = Random.nextInt(minSats, MAX_SATELLITES + 1)
-        val selectedSatellites = satelliteList.shuffled().take(svCount)
-        val mockGps = generateMockGnssData(svCount, selectedSatellites)
-        val gnssStatus = createMockGnssStatus(mockGps, selectedSatellites)
-        dispatchGnssStatus(listener, gnssStatus, mockGps)
+        runCatching {
+            val minSats = FakeLoc.minSatellites.coerceIn(12, MAX_SATELLITES)
+            val svCount = Random.nextInt(minSats, MAX_SATELLITES + 1)
+            val selectedSatellites = satelliteList.shuffled().take(svCount)
+            val mockGps = generateMockGnssData(svCount, selectedSatellites)
+            val gnssStatus = createMockGnssStatus(mockGps, selectedSatellites)
+            dispatchGnssStatus(listener, gnssStatus, mockGps)
+        }.onFailure {
+            Logger.error("callOnGnssStatusChangedForListener failed", it)
+        }
     }
 
     private fun dispatchGnssStatus(listener: IInterface, gnssStatus: GnssStatus?, mockGps: MockGnssData): Boolean {
@@ -697,14 +708,10 @@ internal object LocationServiceHook: BaseLocationHook() {
                         Logger.debug("registerGnssStatusCallback: injected! ${cIGnssStatusListener.name}")
                     }
 
-                    if (FakeLoc.enableMockGnss && callback is IInterface) {
-                        callOnGnssStatusChangedForListener(callback)
-                    }
-
                     if (cIGnssStatusListener.onceHookAllMethod("onSvStatusChanged", beforeHook {
                         if (!FakeLoc.enableMockGnss) return@beforeHook
 
-                        val minSats = FakeLoc.minSatellites.coerceAtLeast(12)
+                        val minSats = FakeLoc.minSatellites.coerceIn(12, MAX_SATELLITES)
                         val svCount = Random.nextInt(minSats, MAX_SATELLITES + 1)
                         val selectedSatellites = satelliteList.shuffled().take(svCount)
                         val mockGps = generateMockGnssData(svCount, selectedSatellites)
@@ -748,6 +755,10 @@ internal object LocationServiceHook: BaseLocationHook() {
                         }
                         if (FakeLoc.enableMockGnss && !FakeLoc.enableAGPS) result = null
                     })
+
+                    if (FakeLoc.enableMockGnss && callback is IInterface) {
+                        callOnGnssStatusChangedForListener(callback)
+                    }
                 }
             }).isEmpty()) {
             XposedBridge.log("[Awalocation] hook registerGnssStatusCallback failed")
@@ -993,7 +1004,7 @@ internal object LocationServiceHook: BaseLocationHook() {
         if (FakeLoc.enableDebugLog)
             Logger.debug("will hook ILocationListener: ${classListener.name}")
 
-        if(XposedBridge.hookAllMethods(classListener, "onLocationChanged", object: XC_MethodHook() {
+        classListener.onceHookAllMethod("onLocationChanged", object: XC_MethodHook() {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     if (param.args.isEmpty()) return
                     if (!FakeLoc.enable) return
@@ -1018,10 +1029,7 @@ internal object LocationServiceHook: BaseLocationHook() {
                         Logger.debug("${param.method}: injected! ${param.args[0]}")
                     }
                 }
-            }).isEmpty()) {
-            Logger.error("hook onLocationChanged failed")
-            return // If the hook fails, the listener is not added
-        }
+            })
     }
 
 //    private fun startDaemon(classLoader: ClassLoader) {
@@ -1082,9 +1090,7 @@ internal object LocationServiceHook: BaseLocationHook() {
         if (FakeLoc.enableDebugLog) {
             Logger.debug("==> callOnLocationChanged: ${locationListeners.size}")
         }
-        if (FakeLoc.enableMockGnss) {
-            callOnGnssStatusChanged()
-        }
+        // GNSS 状态已由 GnssMockDaemon 按 1Hz 节奏独立上报，避免高频位置广播重复冲刷 GNSS 监听器
         locationListeners.forEach { listenerWithProvider ->
             val listener = listenerWithProvider.second
             var location = FakeLoc.lastLocation?.let { Location(it) }

@@ -12,6 +12,7 @@ import com.nanci.awalocation.xposed.utils.Logger
 import com.nanci.awalocation.xposed.utils.beforeHook
 import com.nanci.awalocation.xposed.utils.hookAllMethods
 import com.nanci.awalocation.xposed.utils.onceHookAllMethod
+import java.lang.reflect.Method
 import java.util.Collections
 
 object GnssHook: BaseLocationHook() {
@@ -35,7 +36,13 @@ object GnssHook: BaseLocationHook() {
                     if (FakeLoc.enableDebugLog) {
                         Logger.debug("${param.method.name}: disable")
                     }
-                    param.result = null
+                    val returnType = (param.method as? Method)?.returnType
+                    param.result = when (returnType) {
+                        Boolean::class.javaPrimitiveType -> false
+                        Int::class.javaPrimitiveType -> 0
+                        Long::class.javaPrimitiveType -> 0L
+                        else -> null
+                    }
                 }
             }
         }
@@ -141,7 +148,7 @@ object GnssHook: BaseLocationHook() {
                 val clazz = thisObject.javaClass
                 clazz.onceHookAllMethod("injectBestLocation", beforeHook {
                     if (FakeLoc.enable) {
-                        result = Unit
+                        result = null
                     }
 
                     if (FakeLoc.enableDebugLog) {
@@ -151,7 +158,7 @@ object GnssHook: BaseLocationHook() {
 
                 clazz.onceHookAllMethod("injectLocation", beforeHook {
                     if (FakeLoc.enable) {
-                        result = Unit
+                        result = null
                     }
 
                     if (FakeLoc.enableDebugLog) {

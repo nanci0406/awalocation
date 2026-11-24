@@ -39,40 +39,50 @@ static const char *kTag = "ElfSymResolver";
 
 #if defined(__LP64__)
 using Ehdr = Elf64_Ehdr;
+using Phdr = Elf64_Phdr;
 using Shdr = Elf64_Shdr;
 using Sym  = Elf64_Sym;
 #define AWALOCATION_ST_TYPE(i) ELF64_ST_TYPE(i)
 #else
 using Ehdr = Elf32_Ehdr;
+using Phdr = Elf32_Phdr;
 using Shdr = Elf32_Shdr;
 using Sym  = Elf32_Sym;
 #define AWALOCATION_ST_TYPE(i) ELF32_ST_TYPE(i)
 #endif
 
-// Locate "<base> <path>" for the first executable/readable mapping of a module
-// whose mapped path contains `keyword`. Returns true and fills outBase/outPath.
+// Locate "<base> <fileOffset> <path>" for the first mapping of a module whose
+// mapped path ends with "/<keyword>". Returns true and fills outBase/outFileOffset/outPath.
 static inline bool findModule(const char *keyword, uintptr_t *outBase,
+                              uint64_t *outFileOffset,
                               char *outPath, size_t pathCap) {
   FILE *fp = fopen("/proc/self/maps", "r");
   if (!fp)
     return false;
   bool found = false;
+  size_t kwLen = strlen(keyword);
   char line[1024];
   while (fgets(line, sizeof(line), fp)) {
-    if (!strstr(line, keyword))
+    unsigned long long start = 0, end = 0, offset = 0;
+    char perms[8] = {0};
+    if (sscanf(line, "%llx-%llx %7s %llx", &start, &end, perms, &offset) != 4)
       continue;
-    // We want the first mapping of this module (lowest base) regardless of
-    // perms, so the ELF header (offset 0) is reachable; r--p or r-xp both work.
     char *slash = strchr(line, '/');
     if (!slash)
       continue;
-    uintptr_t base = (uintptr_t)strtoull(line, nullptr, 16);
-    size_t len = strcspn(slash, "\n");
+    size_t len = strcspn(slash, " \t\r\n");
+    if (len <= kwLen)
+      continue;
+    if (slash[len - kwLen - 1] != '/' ||
+        memcmp(slash + len - kwLen, keyword, kwLen) != 0) {
+      continue;
+    }
     if (len >= pathCap)
       len = pathCap - 1;
     memcpy(outPath, slash, len);
     outPath[len] = '\0';
-    *outBase = base;
+    *outBase = (uintptr_t)start;
+    *outFileOffset = (uint64_t)offset;
     found = true;
     break;
   }
@@ -80,10 +90,11 @@ static inline bool findModule(const char *keyword, uintptr_t *outBase,
   return found;
 }
 
-// Resolve the file offset (== st_value for a PIE/shared object's first PT_LOAD)
-// of `symbol` by scanning the on-disk ELF's .dynsym (and .symtab if present).
-// Returns the symbol value (a virtual address / file offset) or 0 on failure.
-static inline uint64_t symValueFromFile(const char *path, const char *symbol) {
+// Resolve `st_value` and the first PT_LOAD `p_vaddr` bias from the on-disk ELF.
+// Returns the symbol's offset relative to the file's first PT_LOAD virtual base,
+// or 0 on failure.
+static inline uint64_t symOffsetFromFile(const char *path, const char *symbol,
+                                         uint64_t *outFirstLoadVaddr) {
   int fd = open(path, O_RDONLY | O_CLOEXEC);
   if (fd < 0) {
     KLOGW(kTag, "open %s failed", path);
@@ -110,6 +121,23 @@ static inline uint64_t symValueFromFile(const char *path, const char *symbol) {
     KLOGW(kTag, "%s not an ELF", path);
     munmap(map, fileSize);
     return 0;
+  }
+
+  uint64_t firstLoadVaddr = 0;
+  if (eh->e_phnum > 0 && eh->e_phentsize >= sizeof(Phdr)) {
+    uint64_t phTableBytes = (uint64_t)eh->e_phnum * (uint64_t)eh->e_phentsize;
+    if (eh->e_phoff <= fileSize && phTableBytes <= fileSize - eh->e_phoff) {
+      for (uint16_t p = 0; p < eh->e_phnum; p++) {
+        const Phdr *ph = (const Phdr *)(bytes + eh->e_phoff + (size_t)p * (size_t)eh->e_phentsize);
+        if (ph->p_type == PT_LOAD) {
+          firstLoadVaddr = (uint64_t)ph->p_vaddr - (uint64_t)ph->p_offset;
+          break;
+        }
+      }
+    }
+  }
+  if (outFirstLoadVaddr) {
+    *outFirstLoadVaddr = firstLoadVaddr;
   }
 
   if (eh->e_shnum == 0 || eh->e_shentsize < sizeof(Shdr)) {
@@ -179,19 +207,23 @@ static inline uint64_t symValueFromFile(const char *path, const char *symbol) {
 static inline void *resolve(const char *keyword, const char *const *symbols,
                             int symbolCount, uint64_t *outOffset) {
   uintptr_t base = 0;
+  uint64_t mapOffset = 0;
   char path[512];
-  if (!findModule(keyword, &base, path, sizeof(path))) {
+  if (!findModule(keyword, &base, &mapOffset, path, sizeof(path))) {
     KLOGW(kTag, "module %s not mapped", keyword);
     return nullptr;
   }
   for (int i = 0; i < symbolCount; i++) {
-    uint64_t val = symValueFromFile(path, symbols[i]);
+    uint64_t firstLoadBias = 0;
+    uint64_t val = symOffsetFromFile(path, symbols[i], &firstLoadBias);
     if (val != 0) {
+      uintptr_t loadBias = base - (uintptr_t)mapOffset - (uintptr_t)firstLoadBias;
       if (outOffset)
         *outOffset = val;
-      KLOGI(kTag, "resolved %s in %s: off=0x%llx base=0x%lx",
-            symbols[i], keyword, (unsigned long long)val, (unsigned long)base);
-      return (void *)(base + (uintptr_t)val);
+      KLOGI(kTag, "resolved %s in %s: st_value=0x%llx base=0x%lx mapOff=0x%llx",
+            symbols[i], keyword, (unsigned long long)val, (unsigned long)base,
+            (unsigned long long)mapOffset);
+      return (void *)(loadBias + (uintptr_t)val);
     }
   }
   KLOGW(kTag, "no requested symbol found in %s (%s)", keyword, path);
